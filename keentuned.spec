@@ -1,5 +1,5 @@
 %define debug_package %{nil}
-%define anolis_release 0
+%define anolis_release 1
 
 Name:           keentuned
 Version:        1.3.3
@@ -64,8 +64,9 @@ fi
 %{_mandir}/man7/keentune-detect.7*
 
 %changelog
-* Wed Oct 12 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 1.3.3-0
-- Add：Support detect MEM with Scope [29, 32]
+* Wed Oct 12 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 1.3.3-1
+- fix: #I5UTCI
+- fix：#I5V8TF
 
 * Wed Aug 31 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 1.3.2-1
 - fix some issues
