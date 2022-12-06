@@ -14,8 +14,8 @@ runcpu --config=cpu2017-20220610-32039.cfg --action=run --copies=32 --threads=1 
 
 #const
 CONFIG = "cpu2017-20220610-32039.cfg"
-LOADTYPE="525 502"
-COMMAND = "cd /home/walter/cpu2017/; source /etc/profile; runcpu --config={} --action=run --copies=32 --threads=1 --iterations=1 --size=ref --output_format=txt --noreportable {}".format(CONFIG,LOADTYPE)
+LOADTYPE="502 520 525"
+COMMAND = "cd /home/walter/cpu2017 && source /home/walter/cpu2017/shrc && source /etc/profile && runcpu --config={} --action=run --copies=32 --threads=1 --iterations=1 --size=ref --output_format=txt --noreportable {}".format(CONFIG,LOADTYPE)
 
 class Benchmark():
     def __init__(self, command=COMMAND):
@@ -28,7 +28,7 @@ class Benchmark():
 
         Return True and score list if running benchmark successfully, otherwise return False and empty list.
         """
-        #time.sleep(30)
+        time.sleep(30)
         cmd = self.command
         logger.info(cmd)
         result = subprocess.run(
