@@ -184,3 +184,73 @@ func requestAllVariables(destMap map[string]string, reqMap map[string]interface{
 	return nil
 }
 
+func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[string]string, error) {
+	names, req, err := parseEnvCondReq(param)
+	if err != nil {
+		return nil, err
+	}
+
+	url := fmt.Sprintf("%v/method", host)
+	respByte, err := http.RemoteCall("POST", url, req)
+	if err != nil {
+		return nil, fmt.Errorf("remote call err:%v", err)
+	}
+
+	var resp []methodResp
+	err = json.Unmarshal(respByte, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal method response err:%v", err)
+	}
+
+	if len(names) != len(resp) {
+		return nil, fmt.Errorf("method response length is %v, expect %v", len(resp), len(names))
+	}
+
+	var failedInfo string
+	var destMap = make(map[string]string)
+	for idx, varName := range names {
+		result := resp[idx]
+		if !result.Suc {
+			failedInfo += fmt.Sprintf("variable '%v' response res '%v' is false\n", varName, result.Result)
+			continue
+		}
+		destMap[varName] = result.Result
+	}
+
+	if failedInfo != "" {
+		return destMap, fmt.Errorf("method response failed, %v", failedInfo)
+	}
+
+	return destMap, nil
+}
+
+func parseEnvCondReq(param map[string]map[string]interface{}) ([]string, []methodReq, error) {
+	var methodNames = make(map[string]string)
+	for _, conds := range param {
+		for cond := range conds {
+			_, find := methodNames[cond]
+			if !find {
+				methodNames[cond] = "true"
+				continue
+			}
+		}
+	}
+
+	if len(methodNames) == 0 {
+		return nil, nil, fmt.Errorf("no rules key found")
+	}
+
+	var req []methodReq
+	var reqNames []string
+	for name := range methodNames {
+		req = append(req, methodReq{
+			Name: name,
+			Args: []interface{}{},
+		})
+		reqNames = append(reqNames, name)
+	}
+
+	return reqNames, req, nil
+}
+
+

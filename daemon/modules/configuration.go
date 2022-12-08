@@ -7,6 +7,7 @@ import (
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
+	"keentune/daemon/common/utils/http"
 	"strings"
 )
 
@@ -164,4 +165,16 @@ func GetApplyResult(body []byte, id int) (string, map[string]Parameter, error) {
 
 	return collectParam(applyResp)
 }
+
+func Configure(req interface{}, host string, ipIndex int) (string, error) {
+	uri := fmt.Sprintf("%v/configure", host)
+	body, err := http.RemoteCall("POST", uri, req)
+	if err != nil {
+		return "", fmt.Errorf("remote call: %v", err)
+	}
+
+	applyResult, _, err := GetApplyResult(body, ipIndex)
+	return applyResult, err
+}
+
 
