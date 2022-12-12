@@ -42,7 +42,7 @@ type ItemDetail struct {
 // Save configuration to profile file
 func (conf Configuration) Save(fileName, suffix string) error {
 	// acquire API return round is 1 less than the actual round value
-	conf.Round += 1
+	conf.Round = conf.Round + 1
 
 	err := file.Dump2File(config.GetTuningPath(fileName), fileName+suffix, conf)
 	if err != nil {
@@ -166,7 +166,10 @@ func GetApplyResult(body []byte, id int) (string, map[string]Parameter, error) {
 	return collectParam(applyResp)
 }
 
+// Configure ...
 func Configure(req interface{}, host string, ipIndex int) (string, error) {
+	config.IsInnerApplyRequests[ipIndex] = true
+        defer func() { config.IsInnerApplyRequests[ipIndex] = false }()
 	uri := fmt.Sprintf("%v/configure", host)
 	body, err := http.RemoteCall("POST", uri, req)
 	if err != nil {

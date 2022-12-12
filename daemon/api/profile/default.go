@@ -21,16 +21,13 @@ type setVars struct {
 }
 
 var (
-	colorErr  = utils.ColorString("red", "[Error]")
 	colorWarn = utils.ColorString("yellow", "[Warning]")
-	colorOk   = utils.ColorString("green", "[ok]")
 )
 
 func SetDefault() () {
 	defaultConf := config.GetProfileHomePath("default.conf")
 	_, param, err := m.ConvertConfFileToJson(defaultConf)
 	if err != nil {
-		fmt.Printf("read default conf err %v\n", err)
 		log.Errorf("", "read default conf err %v\n", err)
 		return
 	}
@@ -51,7 +48,6 @@ func SetDefault() () {
 	}
 
 	wg.Wait()
-	fmt.Println("Set default conf finished!")
 }
 
 func setConfigure(setter setVars) {
@@ -68,22 +64,23 @@ func setConfigure(setter setVars) {
 	host := fmt.Sprintf("%v:%v", setter.ip, setter.target.Port)
 	envConds, err := m.GetEnvCondition(setter.param, host)
 	if err != nil {
-		fmt.Printf("%v host '%v' get environment condition err %v\n", colorErr, setter.ip, err)
 		log.Errorf("", "host '%v' get environment condition err %v", setter.ip, err)
 		return
 	}
 
 	var tuner = &m.Tuner{}
+	var recConf string
 
 	for recommendConf, compares := range setter.param {
 		match := true
 		for name, regulation := range compares {
-			rule := fmt.Sprint(regulation)
+			rule := fmt.Sprint(regulation.(map[string]interface{})["value"])
 			res, _ := regexp.MatchString(rule, envConds[name])
 			match = match && res
 		}
 
 		if match {
+			recConf = recommendConf
 			recommendConf = fmt.Sprintf("%v.conf", recommendConf)
 			fileName := config.GetProfileHomePath(recommendConf)
 			tuner.Setter.ConfFile = []string{fileName}
@@ -110,13 +107,16 @@ func setConfigure(setter setVars) {
 	}
 
 	if err != nil {
-		fmt.Printf("%v host '%v' set default '%v' err %v\n", colorErr, setter.ip, file.GetPlainName(tuner.Setter.ConfFile[0]), err)
 		log.Errorf("", "host '%v' set default '%v' err %v", setter.ip, file.GetPlainName(tuner.Setter.ConfFile[0]), err)
 		return
 	}
 
-	fmt.Printf("%v host '%v' set default result:\n%v\n", colorOk, setter.ip, result)
-	log.Infof("", "host '%v' set default result:\n%v", setter.ip, result)
+	resultPrefix := fmt.Sprintf("[+] Set '%v'  default conf '%v' result:", setter.ip, recConf)
+
+	resultPrefix = utils.ColorString("green", resultPrefix)
+
+	fmt.Printf("%v\n%v\n", resultPrefix, result)
+	log.Infof("", "%v\n%v", resultPrefix, result)
 }
 
 
