@@ -5,7 +5,6 @@ import (
 	"keentune/daemon/common/config"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
-	"keentune/daemon/common/utils/http"
 	"strings"
 	"sync"
 	"time"
@@ -133,15 +132,10 @@ func (gp *Group) Set(req request) (string, error) {
 
 // Configure handle configure request
 func (gp *Group) Configure(req request) (string, error) {
-	uri := fmt.Sprintf("%v:%v/configure", req.ip, gp.Port)
-	body, err := http.RemoteCall("POST", uri, req.body)
+	host := fmt.Sprintf("%s:%s", req.ip, gp.Port)
+	applyResult, paramInfo, err := newTarget(req.ipIndex, host, req.body).configure()
 	if err != nil {
-		return "", fmt.Errorf("remote call: %v", err)
-	}
-
-	applyResult, paramInfo, err := GetApplyResult(body, req.ipIndex)
-	if err != nil {
-		return "", err
+		return applyResult, err
 	}
 
 	// pay attention to: the results in the same group are the same and only need to be updated once to prevent map concurrency security problems
@@ -172,4 +166,5 @@ func (gp *Group) newRequester(id int) request {
 
 	return request{params: data, groupID: id}
 }
+
 

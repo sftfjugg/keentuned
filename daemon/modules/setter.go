@@ -164,9 +164,25 @@ func UpdateActiveFile(fileName string, info []byte) error {
 func (tuner *Tuner) SetDefault() (string, string, error) {
 	var recommend string
 	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0])
+	colorWarn := utils.ColorString("yellow", "[Warning]")
+	if abn.Recommend != "" {
+		recs := strings.Split(abn.Recommend, multiRecordSeparator)
+		for _, rec := range recs {
+			if strings.TrimSpace(rec) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, rec)
+			}
+		}
+	}
 
-	recommend += abn.Recommend
-	recommend += abn.Warning
+	if abn.Warning != "" {
+		warns := strings.Split(abn.Warning, multiRecordSeparator)
+		for _, warn := range warns {
+			if strings.TrimSpace(warn) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, warn)
+			}
+		}
+	}
+
 	if err != nil {
 		return recommend, "", err
 	}
@@ -175,11 +191,11 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	port := tuner.Group[0].Port
 	ipIndex := config.KeenTune.IPMap[ip]
 	host := fmt.Sprintf("%v:%v", ip, port)
-        
+
 	gp := new(Group)
-        gp.ReadOnly = false
-        reqBody := gp.applyReq(ip, param)
-        ret, err := Configure(reqBody, host, ipIndex)
+	gp.ReadOnly = false
+	reqBody := gp.applyReq(ip, param)
+	ret, err := Configure(reqBody, host, ipIndex)
 	return recommend, ret, err
 }
 

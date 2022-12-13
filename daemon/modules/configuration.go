@@ -39,6 +39,15 @@ type ItemDetail struct {
 	Baseline []float32 `json:"base,omitempty"`
 }
 
+type target struct {
+	desSeparator string // description separator
+	host         string
+	ipIndex      int
+	tabSeparator string // table separator
+	reqBody      interface{}
+	respBody     []byte
+}
+
 // Save configuration to profile file
 func (conf Configuration) Save(fileName, suffix string) error {
 	// acquire API return round is 1 less than the actual round value
@@ -52,7 +61,7 @@ func (conf Configuration) Save(fileName, suffix string) error {
 }
 
 // collectParam collect param change map to struct map and state param success information
-func collectParam(applyResp map[string]interface{}) (string, map[string]Parameter, error) {
+func (tg target) collectParam(applyResp map[string]interface{}) (string, map[string]Parameter, error) {
 	if len(applyResp) == 0 {
 		return "", nil, fmt.Errorf("apply response is null")
 	}
@@ -65,7 +74,7 @@ func collectParam(applyResp map[string]interface{}) (string, map[string]Paramete
 		var sucCount, failedCount, skippedCount int
 		var failedInfoSlice [][]string
 
-		setResult += fmt.Sprintf("\t\t[%v]\t", domain)
+		setResult += fmt.Sprintf("%v[%v]\t", tg.desSeparator, domain)
 
 		parameter, _ := paramMap.(map[string]interface{})
 
@@ -109,7 +118,7 @@ func collectParam(applyResp map[string]interface{}) (string, map[string]Paramete
 			continue
 		}
 
-		failedDetail := utils.FormatInTable(failedInfoSlice, "\t\t\t")
+		failedDetail := utils.FormatInTable(failedInfoSlice, tg.tabSeparator)
 		setResult += fmt.Sprintf("%v; the failed details:%s\n", successInfo, failedDetail)
 	}
 
@@ -120,13 +129,13 @@ func collectParam(applyResp map[string]interface{}) (string, map[string]Paramete
 	return setResult, paramCollection, nil
 }
 
-func getApplyResult(sucBytes []byte, id int) (map[string]interface{}, error) {
+func (tg target) getApplyResult() (map[string]interface{}, error) {
 	var applyShortRet struct {
 		Success bool        `json:"suc"`
 		Msg     interface{} `json:"msg"`
 	}
 
-	err := json.Unmarshal(sucBytes, &applyShortRet)
+	err := json.Unmarshal(tg.respBody, &applyShortRet)
 	if err != nil {
 		return nil, err
 	}
@@ -144,8 +153,8 @@ func getApplyResult(sucBytes []byte, id int) (map[string]interface{}, error) {
 	}
 
 	select {
-	case body := <-config.ApplyResultChan[id]:
-		log.Debugf(log.ParamTune, "target id: %v receive apply result :[%v]\n", id, string(body))
+	case body := <-config.ApplyResultChan[tg.ipIndex]:
+		log.Debugf(log.ParamTune, "target id: %v receive apply result :[%v]\n", tg.ipIndex, string(body))
 		if err := json.Unmarshal(body, &applyResp); err != nil {
 			return nil, fmt.Errorf("Parse apply response Unmarshal err: %v", err)
 		}
@@ -157,27 +166,57 @@ func getApplyResult(sucBytes []byte, id int) (map[string]interface{}, error) {
 }
 
 // GetApplyResult get apply result by waiting for target active reports
-func GetApplyResult(body []byte, id int) (string, map[string]Parameter, error) {
-	applyResp, err := getApplyResult(body, id)
+func (tg target) GetApplyResult() (string, map[string]Parameter, error) {
+	applyResp, err := tg.getApplyResult()
 	if err != nil {
 		return "", nil, err
 	}
 
-	return collectParam(applyResp)
+	return tg.collectParam(applyResp)
 }
 
 // Configure ...
 func Configure(req interface{}, host string, ipIndex int) (string, error) {
 	config.IsInnerApplyRequests[ipIndex] = true
-        defer func() { config.IsInnerApplyRequests[ipIndex] = false }()
-	uri := fmt.Sprintf("%v/configure", host)
-	body, err := http.RemoteCall("POST", uri, req)
-	if err != nil {
-		return "", fmt.Errorf("remote call: %v", err)
+	defer func() { config.IsInnerApplyRequests[ipIndex] = false }()
+	desSep := "\t"
+	tabSep := "\t\t"
+
+	tgt := newTarget(ipIndex, host, req, []string{desSep, tabSep}...)
+
+	applyResult, _, err := tgt.configure()
+	return applyResult, err
+}
+
+func newTarget(index int, host string, body interface{}, args ...string) target {
+	desSep, tabSep := "\t\t", "\t\t\t"
+	if len(args) == 2 {
+		desSep = args[0]
+		tabSep = args[1]
 	}
 
-	applyResult, _, err := GetApplyResult(body, ipIndex)
-	return applyResult, err
+	return target{
+		desSeparator: desSep,
+		host:         host,
+		ipIndex:      index,
+		tabSeparator: tabSep,
+		reqBody:      body,
+	}
+}
+
+func (tg target) configure() (string, map[string]Parameter, error) {
+	uri := fmt.Sprintf("%v/configure", tg.host)
+	var err error
+	tg.respBody, err = http.RemoteCall("POST", uri, tg.reqBody)
+	if err != nil {
+		return "", nil, fmt.Errorf("remote call: %v", err)
+	}
+
+	applyResult, paramInfo, err := tg.GetApplyResult()
+	if err != nil {
+		return "", nil, err
+	}
+	return applyResult, paramInfo, nil
 }
 
 
