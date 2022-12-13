@@ -160,6 +160,7 @@ func UpdateActiveFile(fileName string, info []byte) error {
 	return nil
 }
 
+// SetDefault set default configuration
 func (tuner *Tuner) SetDefault() (string, string, error) {
 	var recommend string
 	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0])
@@ -174,7 +175,11 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	port := tuner.Group[0].Port
 	ipIndex := config.KeenTune.IPMap[ip]
 	host := fmt.Sprintf("%v:%v", ip, port)
-	ret, err := Configure(param, host, ipIndex)
+        
+	gp := new(Group)
+        gp.ReadOnly = false
+        reqBody := gp.applyReq(ip, param)
+        ret, err := Configure(reqBody, host, ipIndex)
 	return recommend, ret, err
 }
 

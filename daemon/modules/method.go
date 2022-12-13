@@ -184,6 +184,7 @@ func requestAllVariables(destMap map[string]string, reqMap map[string]interface{
 	return nil
 }
 
+// GetEnvCondition get environment condition by remote call '/method'
 func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[string]string, error) {
 	names, req, err := parseEnvCondReq(param)
 	if err != nil {
@@ -211,7 +212,7 @@ func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[
 	for idx, varName := range names {
 		result := resp[idx]
 		if !result.Suc {
-			failedInfo += fmt.Sprintf("variable '%v' response res '%v' is false\n", varName, result.Result)
+			destMap[varName] = ""
 			continue
 		}
 		destMap[varName] = result.Result
