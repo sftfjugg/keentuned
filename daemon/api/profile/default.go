@@ -4,7 +4,6 @@ import (
 	"fmt"
 	com "keentune/daemon/api/common"
 	"keentune/daemon/common/config"
-	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
 	m "keentune/daemon/modules"
@@ -100,22 +99,22 @@ func setConfigure(setter setVars) {
 
 	recommend, result, err := tuner.SetDefault()
 	if recommend != "" {
-		rec := fmt.Sprintf("[+] set '%v' recommendations:", setter.ip)
+		rec := fmt.Sprintf("[+] Set '%v' recommendations:", setter.ip)
 		printRec := fmt.Sprintf("%v\n%v", utils.ColorString("green", rec), recommend)
-		fmt.Println(printRec)
-		log.Infof("", "set '%v' recommendations:\n%v", setter.ip, recommend)
+		fmt.Print(printRec)
+		log.Infof("", "Set '%v' recommendations:\n%v", setter.ip, recommend)
 	}
 
 	if err != nil {
-		log.Errorf("", "host '%v' set default '%v' err %v", setter.ip, file.GetPlainName(tuner.Setter.ConfFile[0]), err)
+		log.Errorf("", "'%v' set default '%v' err %v", setter.ip, recConf, err)
 		return
 	}
 
-	resultPrefix := fmt.Sprintf("[+] Set '%v'  default conf '%v' result:", setter.ip, recConf)
+	resultPrefix := fmt.Sprintf("[+] Set '%v' default conf '%v' result:", setter.ip, recConf)
 
 	resultPrefix = utils.ColorString("green", resultPrefix)
 
-	fmt.Printf("%v\n%v\n", resultPrefix, result)
+	fmt.Printf("%v\n%v", resultPrefix, result)
 	log.Infof("", "%v\n%v", resultPrefix, result)
 }
 

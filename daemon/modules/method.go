@@ -207,7 +207,6 @@ func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[
 		return nil, fmt.Errorf("method response length is %v, expect %v", len(resp), len(names))
 	}
 
-	var failedInfo string
 	var destMap = make(map[string]string)
 	for idx, varName := range names {
 		result := resp[idx]
@@ -216,10 +215,6 @@ func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[
 			continue
 		}
 		destMap[varName] = result.Result
-	}
-
-	if failedInfo != "" {
-		return destMap, fmt.Errorf("method response failed, %v", failedInfo)
 	}
 
 	return destMap, nil
