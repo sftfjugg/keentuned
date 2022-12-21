@@ -396,8 +396,8 @@ func collectConfVariables(pureLine string, variableMap map[string]string, variab
 		expectedRegx[varName] = varValue
 	}
 
-	if varName == noBalanceCores || varName == isolatedCores || varName == isolatedCoresAssert {
-		variableMap[varName] = cpuCoresSpecValue[varName]
+	if specVariableName[varName] {
+		variableMap[varName] = specVariableValue[varName]
 		return
 	}
 
@@ -518,4 +518,5 @@ func replaceEqualSign(origin string) string {
 
 	return origin
 }
+
 

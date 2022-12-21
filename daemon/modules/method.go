@@ -16,16 +16,20 @@ const (
 	defFuncWithFourArgsReg = "\\$\\{f:(.*):(.*):(.*):(.*):(.*)\\}"
 )
 
-const (
-	noBalanceCores      = "no_balance_cores"
-	isolatedCores       = "isolated_cores"
-	isolatedCoresAssert = "isolated_cores_assert_check"
-)
+var specVariableName = map[string]bool{
+	"no_balance_cores":            true,
+	"isolated_cores":              true,
+	"isolated_cores_assert_check": true,
+	"isolate_managed_irq":         true,
+	"netdev_queue_count":          true,
+}
 
-var cpuCoresSpecValue = map[string]string{
+var specVariableValue = map[string]string{
 	"no_balance_cores":            "2-3",
 	"isolated_cores":              "5",
 	"isolated_cores_assert_check": "\\2-3",
+	"netdev_queue_count":          "4",
+	"isolate_managed_irq":         "Y",
 }
 
 type methodReq struct {
@@ -107,7 +111,7 @@ func getFuncWithOneArgMethodReq(origin string, varMap map[string]interface{}) me
 
 	if matchString("\\$\\{(.*)\\}", args[1]) {
 		varName := strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(args[1]), "${"), "}")
-		specValue, find := cpuCoresSpecValue[varName]
+		specValue, find := specVariableValue[varName]
 		var arg interface{}
 		if find {
 			arg = specValue
