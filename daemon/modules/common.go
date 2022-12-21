@@ -138,11 +138,12 @@ func callRollback(method string, url string, request interface{}) (string, int) 
 		return string(resp), FAILED
 	}
 
-	var parseFailedMsg, parseWarningMsg string
+	var parseFailedMsg string
+	var warnCount int
 
 	for domain, res := range response {
 		if parseStatusCode(res.Msg) == WARNING {
-			parseWarningMsg += fmt.Sprintf("\n\t'%v' waring msg: %v", domain, res.Msg)
+			warnCount++
 			continue
 		}
 
@@ -155,8 +156,8 @@ func callRollback(method string, url string, request interface{}) (string, int) 
 		return parseFailedMsg, FAILED
 	}
 
-	if parseWarningMsg != "" {
-		return parseWarningMsg, WARNING
+	if warnCount == len(response) {
+		return "No domain needs to be rolled back", WARNING
 	}
 
 	return "", SUCCESS
@@ -231,4 +232,5 @@ func (tuner *Tuner) original() error {
 	}
 	return tuner.concurrent("rollback")
 }
+
 
