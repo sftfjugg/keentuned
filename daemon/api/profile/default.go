@@ -99,7 +99,7 @@ func setConfigure(setter setVars) {
 
 	recommend, result, err := tuner.SetDefault()
 	if recommend != "" {
-		rec := fmt.Sprintf("[+] Set '%v' recommendations:", setter.ip)
+		rec := fmt.Sprintf("\n[+] Default Set '%v' of '%v' recommendations:", recConf, setter.ip)
 		printRec := fmt.Sprintf("%v\n%v", utils.ColorString("green", rec), recommend)
 		fmt.Print(printRec)
 		log.Infof("", "Set '%v' recommendations:\n%v", setter.ip, recommend)
@@ -110,7 +110,7 @@ func setConfigure(setter setVars) {
 		return
 	}
 
-	resultPrefix := fmt.Sprintf("[+] Set '%v' default conf '%v' result:", setter.ip, recConf)
+	resultPrefix := fmt.Sprintf("\n[+] Default Set '%v' of '%v' result:", recConf, setter.ip)
 
 	resultPrefix = utils.ColorString("green", resultPrefix)
 
