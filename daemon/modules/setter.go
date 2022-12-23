@@ -191,12 +191,45 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	port := tuner.Group[0].Port
 	ipIndex := config.KeenTune.IPMap[ip]
 	host := fmt.Sprintf("%v:%v", ip, port)
+	tuner.updateGroup(param)
 
+	err = tuner.prepareBeforeSet()
+	if tuner.backupWarning != "" {
+		for _, backupWarning := range strings.Split(tuner.backupWarning, multiRecordSeparator) {
+			if strings.TrimSpace(backupWarning) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, backupWarning)
+			}
+		}
+	}
+
+	if err != nil {
+		return recommend, "", err
+	}
+
+	reqParam := tuner.Group[0].Params[0]
+	reqBody := tuner.Group[0].applyReq(ip, reqParam)
+	ret, err := Configure(reqBody, host, ipIndex)
+
+	if err != nil {
+		return recommend, ret, err
+	}
+
+	activeFile := config.GetProfileWorkPath("active.conf")
+	var fileSet = fmt.Sprintln("name,group_info")
+	name := file.GetPlainName(tuner.Setter.ConfFile[0])
+	fileSet += fmt.Sprintf("%s,%s\n", name, ip)
+	UpdateActiveFile(activeFile, []byte(fileSet))
+	return recommend, ret, nil
+}
+
+func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}) {
 	gp := new(Group)
 	gp.ReadOnly = false
-	reqBody := gp.applyReq(ip, param)
-	ret, err := Configure(reqBody, host, ipIndex)
-	return recommend, ret, err
+	gp.Params = []config.DBLMap{param}
+	gp.mergeParam()
+	gp.IPs = tuner.Group[0].IPs
+	gp.Port = tuner.Group[0].Port
+	tuner.Group[0] = *gp
 }
 
 
