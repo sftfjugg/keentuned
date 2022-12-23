@@ -1,0 +1,31 @@
+{
+  "benchmark": [
+    {
+      "benchmark_cmd": "python3 {remote_script_path} {target_ip}",
+      "local_script_path": "benchmark/wrk/wrk_parameter_tuning.py",
+      "items": {
+        "Requests_sec": {
+          "negative": false,
+          "weight": 100,
+          "strict": false
+        },
+        "Transfer_sec": {
+          "negative": false,
+          "weight": 0,
+          "strict": false
+        },
+        "Latency_90": {
+          "negative": true,
+          "weight": 0,
+          "strict": true
+        },
+        "Latency_99": {
+          "negative": true,
+          "weight": 0,
+          "strict": true
+        }
+      }
+    }
+  ]
+}
+
