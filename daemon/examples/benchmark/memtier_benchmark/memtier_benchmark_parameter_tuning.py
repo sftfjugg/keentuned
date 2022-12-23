@@ -18,7 +18,7 @@ RATIO="1:1"
 PIPELINE=1
 TEST_TIME=6
 
-DEFAULT = "-t 8 -c 10 -d 32"
+DEFAULT = "--threads=8 --clients=10 --data-size=32"
 
 script_file="benchmark_run.sh"
 
