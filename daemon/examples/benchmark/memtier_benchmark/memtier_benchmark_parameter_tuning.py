@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 KEY_MAXIMUM=100000
 RATIO="1:1"
 PIPELINE=1
-TEST_TIME=6
+TEST_TIME=60
 
-DEFAULT = "--threads=8 --clients=10 --data-size=32"
+DEFAULT = "--threads=8 --clients=10"
 
 script_file="benchmark_run.sh"
 
@@ -32,7 +32,7 @@ class Benchmark:
             duration (int, optional): Duration of test.
         """
         # Modify the test command based on the actual scenario
-        self.DEFAULT_CMD = " memtier_benchmark  -s {} -p $port {} --test-time={} --ratio={} --pipeline={}  --key-maximum={} ".format(url, default, test_time, ratio, pipeline, key_maximum)
+        self.DEFAULT_CMD = " memtier_benchmark  -s {} -p $port {} --test-time={} --ratio={} --pipeline={}  --key-maximum={} --data-size=32".format(url, default, test_time, ratio, pipeline, key_maximum)
 
     def __transfMeasurement(self,value,measurement):
         if measurement == '':
@@ -75,8 +75,8 @@ class Benchmark:
 
         Return True and score list if running benchmark successfully, otherwise return False and empty list.
         """
-        redisshell="""#!/bin/bash
-instance=2
+        redisshell = """#!/bin/bash
+instance=16
 REDIS_PORT=9400
 cpu_cores=`cat /proc/cpuinfo | grep processor | wc -l`
 process_cpu=$(($cpu_cores / $instance))
@@ -106,12 +106,12 @@ for pid in ${client_pids}; do wait ${pid} ; done
                     stderr=subprocess.PIPE,
                     stdout=subprocess.PIPE
                 )
-        self.out = result.stdout.decode('UTF-8','strict')
-        print(self.out)
+        out_result = result.stdout.decode('UTF-8','strict')
+        with open("out.log", "w", encoding='UTF-8') as f:
+            f.write(out_result)
         self.error = result.stderr.decode('UTF-8','strict')
         if result.returncode == 0:
-            logger.info(self.out)
-            cmd = "echo \"%s\" | awk 'BEGIN{ops_per_sec = 0} /^Totals/{ops_per_sec += $2} END{print ops_per_sec}'" % self.out
+            cmd = "awk 'BEGIN{ops_per_sec = 0} /^Totals/{ops_per_sec += $2} END{print ops_per_sec}' out.log "
             result = subprocess.run(
                     cmd,
                     shell=True,
@@ -121,7 +121,9 @@ for pid in ${client_pids}; do wait ${pid} ; done
                 )
             self.options = result.stdout.decode('UTF-8','strict')
 
-            result = {"OPS": float(self.options)}
+            result = {
+                    "OPS": float(self.options)
+                    }
             result_str = ", ".join(["{} = {}".format(k,v) for k,v in result.items()])
             print(result_str)
             return True, result_str

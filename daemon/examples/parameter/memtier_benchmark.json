@@ -1,27 +1,19 @@
 {
-    "sysbench":{
+    "memtier_benchmark":{
         "threads":{
             "desc":"默认值：1",
             "dtype":"int",
             "range":[
-                10,
-                30
+                1,
+                "#!cpu_core#"
             ]
         },
         "clients":{
             "desc":"默认值：32K",
             "dtype":"int",
             "range":[
-                10,
-                30
-            ]
-        },
-        "data-size":{
-            "desc":"默认值：3",
-            "dtype":"int",
-            "range":[
-                32,
-                64
+                1,
+                50
             ]
         }
         }
