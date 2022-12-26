@@ -54,7 +54,7 @@ func (tuner *Tuner) Set() {
 
 	err = tuner.setConfigure()
 	if err != nil {
-		log.Errorf(log.ProfSet, "Set failed: %v", err)
+		log.Warn(log.ProfSet, err)
 		return
 	}
 

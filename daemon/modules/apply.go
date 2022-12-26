@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const applyFailureResult = "apply result exists failure"
+
 type request struct {
 	params  []map[string]interface{}
 	ip      string
@@ -57,7 +59,7 @@ func (tuner *Tuner) configure() error {
 	wg.Wait()
 
 	for _, status := range targetFinishStatus {
-		if strings.Contains(status, "apply failed") {
+		if strings.Contains(status, applyFailureResult) {
 			errDetail += status
 			continue
 		}
@@ -89,7 +91,7 @@ func (tuner *Tuner) apply(wg *sync.WaitGroup, targetFinishStatus []string, req r
 		wg.Done()
 		config.IsInnerApplyRequests[req.ipIndex] = false
 		if errMsg != nil {
-			targetFinishStatus[req.ipIndex-1] = fmt.Sprintf("%v apply failed: %v", identity, errMsg)
+			targetFinishStatus[req.ipIndex-1] = fmt.Sprintf("%v %v:\n%v", identity, applyFailureResult, errMsg)
 		}
 	}()
 
