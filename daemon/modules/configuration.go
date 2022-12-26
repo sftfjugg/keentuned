@@ -108,7 +108,7 @@ func (tg target) collectParam(applyResp map[string]interface{}) (string, map[str
 			if failedCount == 1 {
 				failedInfoSlice = append(failedInfoSlice, []string{"param name", "failed reason"})
 			}
-			msg := fmt.Sprint(detail.Msg)
+			msg := strings.ReplaceAll(fmt.Sprint(detail.Msg), "\n", ". ")
 			failedInfoSlice = append(failedInfoSlice, []string{name, msg})
 		}
 
@@ -214,7 +214,7 @@ func (tg target) configure() (string, map[string]Parameter, error) {
 
 	applyResult, paramInfo, err := tg.GetApplyResult()
 	if err != nil {
-		return "", nil, err
+		return applyResult, nil, fmt.Errorf(applyResult)
 	}
 	return applyResult, paramInfo, nil
 }
