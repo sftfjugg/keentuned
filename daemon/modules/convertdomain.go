@@ -22,6 +22,17 @@ const (
 	tunedBootloaderDomain = "bootloader"
 )
 
+const (
+	bootloaderRecommend = "recommend: bootloader is recommended to set manually."
+	notSupportRecommend = "it is not supported, skipping."
+)
+
+var skipParamDict = map[string]bool{
+	"channels":       true,
+	"isolated_cores": true,
+	"ps_blacklist":   true,
+}
+
 var expectedRegx = map[string]string{
 	"thunderx_cpuinfo_regex": "CPU part\\s+:\\s+(0x0?516)|(0x0?af)|(0x0?a[0-3])|(0x0?b8)\\b",
 	"amd_cpuinfo_regex":      "model name\\s+:.*\\bAMD\\b",
@@ -136,4 +147,5 @@ func calculateByLogic(express string, logic string) bool {
 
 	return logicResult
 }
+
 
