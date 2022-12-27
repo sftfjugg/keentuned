@@ -50,7 +50,7 @@ func (tuner *Tuner) Set() {
 		groupSetResult = fmt.Sprintf("\n%v", groupSetResult)
 	}
 
-	log.Infof(log.ProfSet, groupSetResult)
+	log.Info(log.ProfSet, groupSetResult)
 
 	err = tuner.setConfigure()
 	if err != nil {
