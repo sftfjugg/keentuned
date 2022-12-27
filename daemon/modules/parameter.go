@@ -308,7 +308,10 @@ func parseConfStrToMapSlice(replacedStr, fileName string, abnormal *ABNLResult) 
 		}
 
 		if commonDomain == tunedBootloaderDomain {
-			// todo
+			if len(recommendMap[tunedBootloaderDomain]) == 0 {
+				recommendMap[tunedBootloaderDomain] = append(recommendMap[tunedBootloaderDomain], fmt.Sprintf("\t\t%v\n", bootloaderRecommend))
+			}
+
 			continue
 		}
 
@@ -459,14 +462,11 @@ func readLine(line string) (string, string, map[string]interface{}, error) {
 }
 
 func getParam(paramSlice []string) (string, string, map[string]interface{}, error) {
-	var recommend string
 	paramName := strings.TrimSpace(paramSlice[0])
 	valueStr := strings.ReplaceAll(strings.TrimSpace(paramSlice[1]), "\"", "")
 
-	matched, _ := regexp.MatchString(recommendReg, strings.ToLower(valueStr))
-	if matched {
-		forceWrapLine := strings.Replace(valueStr, ". Please", ".\n\t\t\tPlease", 1)
-		recommend = fmt.Sprintf("\t\t%v: %v\n", paramName, strings.TrimPrefix(forceWrapLine, "recommend:"))
+	recommend, skip := isRecommend(valueStr, paramName)
+	if skip {
 		return recommend, "", nil, nil
 	}
 
@@ -506,6 +506,24 @@ func getParam(paramSlice []string) (string, string, map[string]interface{}, erro
 		"name":  paramName,
 	}
 	return "", "", param, nil
+}
+
+func isRecommend(valueStr string, paramName string) (string, bool) {
+	var recommend string
+
+	if skipParamDict[paramName] {
+		recommend = fmt.Sprintf("\t\t%v: %v\n", paramName, notSupportRecommend)
+		return recommend, true
+	}
+
+	matched, _ := regexp.MatchString(recommendReg, strings.ToLower(valueStr))
+	if matched {
+		forceWrapLine := strings.Replace(valueStr, ". Please", ".\n\t\t\tPlease", 1)
+		recommend = fmt.Sprintf("\t\t%v: %v\n", paramName, strings.TrimPrefix(forceWrapLine, "recommend:"))
+		return recommend, true
+	}
+
+	return "", false
 }
 
 func replaceEqualSign(origin string) string {
