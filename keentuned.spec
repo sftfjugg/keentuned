@@ -2,7 +2,7 @@
 %define anolis_release 0
 
 Name:           keentuned
-Version:        1.4.0
+Version:        2.0.0
 Release:        %{?anolis_release}%{?dist}
 Url:            https://gitee.com/anolis/keentuned
 Summary:        KeenTune tuning tools
@@ -65,6 +65,10 @@ fi
 %{_prefix}/share/bash-completion/completions/keentune.bash
 
 %changelog
+* Thu Dec 15 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-0
+- Support experience tuning of Tuned
+
+
 * Thu Sep 22 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 1.4.0-0
 - add: Support UI Intelligent tuning and Sensitive parameter identification
 - add: Support show recommendation log for expert one click tuning
