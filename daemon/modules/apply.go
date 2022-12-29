@@ -5,11 +5,12 @@ import (
 	"keentune/daemon/common/config"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
-	"keentune/daemon/common/utils/http"
 	"strings"
 	"sync"
 	"time"
 )
+
+const applyFailureResult = "apply result exists failure"
 
 type request struct {
 	params  []map[string]interface{}
@@ -58,7 +59,7 @@ func (tuner *Tuner) configure() error {
 	wg.Wait()
 
 	for _, status := range targetFinishStatus {
-		if strings.Contains(status, "apply failed") {
+		if strings.Contains(status, applyFailureResult) {
 			errDetail += status
 			continue
 		}
@@ -90,7 +91,7 @@ func (tuner *Tuner) apply(wg *sync.WaitGroup, targetFinishStatus []string, req r
 		wg.Done()
 		config.IsInnerApplyRequests[req.ipIndex] = false
 		if errMsg != nil {
-			targetFinishStatus[req.ipIndex-1] = fmt.Sprintf("%v apply failed: %v", identity, errMsg)
+			targetFinishStatus[req.ipIndex-1] = fmt.Sprintf("%v %v:\n%v", identity, applyFailureResult, errMsg)
 		}
 	}()
 
@@ -133,15 +134,10 @@ func (gp *Group) Set(req request) (string, error) {
 
 // Configure handle configure request
 func (gp *Group) Configure(req request) (string, error) {
-	uri := fmt.Sprintf("%v:%v/configure", req.ip, gp.Port)
-	body, err := http.RemoteCall("POST", uri, req.body)
+	host := fmt.Sprintf("%s:%s", req.ip, gp.Port)
+	applyResult, paramInfo, err := newTarget(req.ipIndex, host, req.body).configure()
 	if err != nil {
-		return "", fmt.Errorf("remote call: %v", err)
-	}
-
-	applyResult, paramInfo, err := GetApplyResult(body, req.ipIndex)
-	if err != nil {
-		return "", err
+		return applyResult, err
 	}
 
 	// pay attention to: the results in the same group are the same and only need to be updated once to prevent map concurrency security problems
@@ -172,4 +168,5 @@ func (gp *Group) newRequester(id int) request {
 
 	return request{params: data, groupID: id}
 }
+
 

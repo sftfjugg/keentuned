@@ -50,11 +50,11 @@ func (tuner *Tuner) Set() {
 		groupSetResult = fmt.Sprintf("\n%v", groupSetResult)
 	}
 
-	log.Infof(log.ProfSet, groupSetResult)
+	log.Info(log.ProfSet, groupSetResult)
 
 	err = tuner.setConfigure()
 	if err != nil {
-		log.Errorf(log.ProfSet, "Set failed: %v", err)
+		log.Warn(log.ProfSet, err)
 		return
 	}
 
@@ -160,12 +160,29 @@ func UpdateActiveFile(fileName string, info []byte) error {
 	return nil
 }
 
+// SetDefault set default configuration
 func (tuner *Tuner) SetDefault() (string, string, error) {
 	var recommend string
 	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0])
+	colorWarn := utils.ColorString("yellow", "[Warning]")
+	if abn.Recommend != "" {
+		recs := strings.Split(abn.Recommend, multiRecordSeparator)
+		for _, rec := range recs {
+			if strings.TrimSpace(rec) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, rec)
+			}
+		}
+	}
 
-	recommend += abn.Recommend
-	recommend += abn.Warning
+	if abn.Warning != "" {
+		warns := strings.Split(abn.Warning, multiRecordSeparator)
+		for _, warn := range warns {
+			if strings.TrimSpace(warn) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, warn)
+			}
+		}
+	}
+
 	if err != nil {
 		return recommend, "", err
 	}
@@ -174,8 +191,45 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	port := tuner.Group[0].Port
 	ipIndex := config.KeenTune.IPMap[ip]
 	host := fmt.Sprintf("%v:%v", ip, port)
-	ret, err := Configure(param, host, ipIndex)
-	return recommend, ret, err
+	tuner.updateGroup(param)
+
+	err = tuner.prepareBeforeSet()
+	if tuner.backupWarning != "" {
+		for _, backupWarning := range strings.Split(tuner.backupWarning, multiRecordSeparator) {
+			if strings.TrimSpace(backupWarning) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, backupWarning)
+			}
+		}
+	}
+
+	if err != nil {
+		return recommend, "", err
+	}
+
+	reqParam := tuner.Group[0].Params[0]
+	reqBody := tuner.Group[0].applyReq(ip, reqParam)
+	ret, err := Configure(reqBody, host, ipIndex)
+
+	if err != nil {
+		return recommend, ret, err
+	}
+
+	activeFile := config.GetProfileWorkPath("active.conf")
+	var fileSet = fmt.Sprintln("name,group_info")
+	name := file.GetPlainName(tuner.Setter.ConfFile[0])
+	fileSet += fmt.Sprintf("%s,%s\n", name, ip)
+	UpdateActiveFile(activeFile, []byte(fileSet))
+	return recommend, ret, nil
+}
+
+func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}) {
+	gp := new(Group)
+	gp.ReadOnly = false
+	gp.Params = []config.DBLMap{param}
+	gp.mergeParam()
+	gp.IPs = tuner.Group[0].IPs
+	gp.Port = tuner.Group[0].Port
+	tuner.Group[0] = *gp
 }
 
 

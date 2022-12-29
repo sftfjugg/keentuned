@@ -16,16 +16,20 @@ const (
 	defFuncWithFourArgsReg = "\\$\\{f:(.*):(.*):(.*):(.*):(.*)\\}"
 )
 
-const (
-	noBalanceCores      = "no_balance_cores"
-	isolatedCores       = "isolated_cores"
-	isolatedCoresAssert = "isolated_cores_assert_check"
-)
+var specVariableName = map[string]bool{
+	"no_balance_cores":            true,
+	"isolated_cores":              true,
+	"isolated_cores_assert_check": true,
+	"isolate_managed_irq":         true,
+	"netdev_queue_count":          true,
+}
 
-var cpuCoresSpecValue = map[string]string{
+var specVariableValue = map[string]string{
 	"no_balance_cores":            "2-3",
 	"isolated_cores":              "5",
 	"isolated_cores_assert_check": "\\2-3",
+	"netdev_queue_count":          "4",
+	"isolate_managed_irq":         "Y",
 }
 
 type methodReq struct {
@@ -107,7 +111,7 @@ func getFuncWithOneArgMethodReq(origin string, varMap map[string]interface{}) me
 
 	if matchString("\\$\\{(.*)\\}", args[1]) {
 		varName := strings.TrimSuffix(strings.TrimPrefix(strings.TrimSpace(args[1]), "${"), "}")
-		specValue, find := cpuCoresSpecValue[varName]
+		specValue, find := specVariableValue[varName]
 		var arg interface{}
 		if find {
 			arg = specValue
@@ -184,6 +188,7 @@ func requestAllVariables(destMap map[string]string, reqMap map[string]interface{
 	return nil
 }
 
+// GetEnvCondition get environment condition by remote call '/method'
 func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[string]string, error) {
 	names, req, err := parseEnvCondReq(param)
 	if err != nil {
@@ -206,19 +211,14 @@ func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[
 		return nil, fmt.Errorf("method response length is %v, expect %v", len(resp), len(names))
 	}
 
-	var failedInfo string
 	var destMap = make(map[string]string)
 	for idx, varName := range names {
 		result := resp[idx]
 		if !result.Suc {
-			failedInfo += fmt.Sprintf("variable '%v' response res '%v' is false\n", varName, result.Result)
+			destMap[varName] = ""
 			continue
 		}
 		destMap[varName] = result.Result
-	}
-
-	if failedInfo != "" {
-		return destMap, fmt.Errorf("method response failed, %v", failedInfo)
 	}
 
 	return destMap, nil

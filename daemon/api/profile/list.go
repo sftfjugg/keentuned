@@ -27,7 +27,7 @@ func (s *Service) List(flag string, reply *string) error {
 	records, _ := file.GetAllRecords(activeFileName)
 
 	for _, value := range proFileList {
-		if value == "active.conf" {
+		if value == "active.conf" || value == "default.conf" {
 			continue
 		}
 
@@ -92,4 +92,5 @@ func getRepeatedNameInfo(names, fullPaths []string) string {
 
 	return warningInfo
 }
+
 
