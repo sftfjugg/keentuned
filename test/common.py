@@ -128,7 +128,7 @@ def runSensitizeCollect(name, iteration=10):
     return result
 
 def getSysBackupData():
-    path ="/var/keentune/backup/sysctl_backup.conf"
+    path ="/var/keentune/target/backup/Sysctl.json"
     if target_ip == "localhost":
         cmd = "sysctl -n {}"
         result = os.path.exists(path)
