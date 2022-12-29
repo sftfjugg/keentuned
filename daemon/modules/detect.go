@@ -13,7 +13,7 @@ import (
 const conditionReg = "[|&<>=!∈]"
 
 var (
-	detectENVNotMetFmt = "Settings in [%v] domain only suites for %v Env, please set your parameters refer to %v\n"
+	detectENVNotMetFmt = "Settings in [%v] domain only suites for %v Env, please set your parameters refer to %v"
 )
 
 // domain
@@ -168,4 +168,5 @@ func detectParam(param *Parameter) error {
 
 	return nil
 }
+
 

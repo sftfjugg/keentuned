@@ -570,7 +570,8 @@
             "range":[
                 1,
                 16
-            ]
+            ],
+	    "step": 1
         },
         "net.ipv4.tcp_moderate_rcvbuf":{
             "desc":"Whether to adjust the receive buffer when receiving data 0: no adjustment 1: yes",

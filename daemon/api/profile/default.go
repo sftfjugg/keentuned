@@ -4,7 +4,6 @@ import (
 	"fmt"
 	com "keentune/daemon/api/common"
 	"keentune/daemon/common/config"
-	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
 	m "keentune/daemon/modules"
@@ -21,16 +20,13 @@ type setVars struct {
 }
 
 var (
-	colorErr  = utils.ColorString("red", "[Error]")
 	colorWarn = utils.ColorString("yellow", "[Warning]")
-	colorOk   = utils.ColorString("green", "[ok]")
 )
 
 func SetDefault() () {
 	defaultConf := config.GetProfileHomePath("default.conf")
 	_, param, err := m.ConvertConfFileToJson(defaultConf)
 	if err != nil {
-		fmt.Printf("read default conf err %v\n", err)
 		log.Errorf("", "read default conf err %v\n", err)
 		return
 	}
@@ -51,7 +47,6 @@ func SetDefault() () {
 	}
 
 	wg.Wait()
-	fmt.Println("Set default conf finished!")
 }
 
 func setConfigure(setter setVars) {
@@ -68,22 +63,23 @@ func setConfigure(setter setVars) {
 	host := fmt.Sprintf("%v:%v", setter.ip, setter.target.Port)
 	envConds, err := m.GetEnvCondition(setter.param, host)
 	if err != nil {
-		fmt.Printf("%v host '%v' get environment condition err %v\n", colorErr, setter.ip, err)
 		log.Errorf("", "host '%v' get environment condition err %v", setter.ip, err)
 		return
 	}
 
 	var tuner = &m.Tuner{}
+	var recConf string
 
 	for recommendConf, compares := range setter.param {
 		match := true
 		for name, regulation := range compares {
-			rule := fmt.Sprint(regulation)
+			rule := fmt.Sprint(regulation.(map[string]interface{})["value"])
 			res, _ := regexp.MatchString(rule, envConds[name])
 			match = match && res
 		}
 
 		if match {
+			recConf = recommendConf
 			recommendConf = fmt.Sprintf("%v.conf", recommendConf)
 			fileName := config.GetProfileHomePath(recommendConf)
 			tuner.Setter.ConfFile = []string{fileName}
@@ -103,20 +99,25 @@ func setConfigure(setter setVars) {
 
 	recommend, result, err := tuner.SetDefault()
 	if recommend != "" {
-		rec := fmt.Sprintf("[+] set '%v' recommendations:", setter.ip)
-		printRec := fmt.Sprintf("%v\n%v", utils.ColorString("green", rec), recommend)
-		fmt.Println(printRec)
-		log.Infof("", "set '%v' recommendations:\n%v", setter.ip, recommend)
+		recPrefix := fmt.Sprintf("[+] Default Set '%v' of '%v' recommendations:", recConf, setter.ip)
+		recPrefix = utils.ColorString("green", recPrefix)
+		setRecommend := fmt.Sprintf("\n%v\n%v", recPrefix, recommend)
+		fmt.Print(setRecommend)
+		log.Info("", setRecommend)
 	}
 
 	if err != nil {
-		fmt.Printf("%v host '%v' set default '%v' err %v\n", colorErr, setter.ip, file.GetPlainName(tuner.Setter.ConfFile[0]), err)
-		log.Errorf("", "host '%v' set default '%v' err %v", setter.ip, file.GetPlainName(tuner.Setter.ConfFile[0]), err)
+		log.Errorf("", "'%v' set default '%v' err %v", setter.ip, recConf, err)
 		return
 	}
 
-	fmt.Printf("%v host '%v' set default result:\n%v\n", colorOk, setter.ip, result)
-	log.Infof("", "host '%v' set default result:\n%v", setter.ip, result)
+	resultPrefix := fmt.Sprintf("[+] Default Set '%v' of '%v' result:", recConf, setter.ip)
+
+	resultPrefix = utils.ColorString("green", resultPrefix)
+	setResult := fmt.Sprintf("\n%v\n%v", resultPrefix, result)
+
+	fmt.Print(setResult)
+	log.Info("", setResult)
 }
 
 

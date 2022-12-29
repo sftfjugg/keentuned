@@ -68,7 +68,7 @@ func callBackup(method, url string, request interface{}) (map[string]map[string]
 		parameter := param.(map[string]interface{})
 		for name, _ := range parameter {
 			_, exists := domainParam[name]
-			if !exists || domainParam[name] == nil {
+			if !exists {
 				_, notExist := unAVLParam[domain]
 				if !notExist {
 					unAVLParam[domain] = make(map[string]string)
@@ -80,4 +80,5 @@ func callBackup(method, url string, request interface{}) (map[string]map[string]
 
 	return unAVLParam, "", SUCCESS
 }
+
 
