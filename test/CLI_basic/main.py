@@ -22,6 +22,7 @@ from CLI_basic.test_profile_set import TestProfileSet
 from CLI_basic.test_sensitize_train import TestSensitizeTrain
 from CLI_basic.test_sensitize_jobs import TestSensitizeJobs
 from CLI_basic.test_sensitize_delete import TestSensitizeDelete
+from CLI_basic.test_tuned_profile import TestTunedProfile
 
 
 def RunBasicCase():
@@ -48,8 +49,11 @@ def RunBasicCase():
     sensitize_suite.addTest(TestSensitizeTrain('test_sensitize_train_FUN'))
     sensitize_suite.addTest(TestSensitizeJobs('test_sensitize_jobs_FUN'))
     sensitize_suite.addTest(TestSensitizeDelete('test_sensitize_delete_FUN'))
+    
+    tuned_suite = unittest.TestSuite()
+    tuned_suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTunedProfile))
 
-    suite = unittest.TestSuite([param_suite, profile_suite, sensitize_suite])
+    suite = unittest.TestSuite([param_suite, profile_suite, sensitize_suite, tuned_suite])
     return suite
 
 
