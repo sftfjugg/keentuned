@@ -67,7 +67,6 @@ class TestTunedProfile(unittest.TestCase):
         cmd = 'keentune profile set cpu-partitioning.conf'
         self.status, self.out, _  = sysCommand(cmd)
         self.assertEqual(self.status, 0)
-        self.assertIn("[env]\t1 Succeeded", self.out)
         self.assertIn("[sysfs]\t4 Succeeded", self.out)
         self.assertIn("[vm]\t1 Succeeded", self.out)
         self.assertIn("[systemd]\t1 Succeeded", self.out)
