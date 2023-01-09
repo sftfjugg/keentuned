@@ -198,7 +198,7 @@ func GetKeenTunedConfPath(origin string) string {
 }
 
 func GetProfilePath(fileName string) string {
-	if file.IsPathExist(fileName) {
+	if strings.HasPrefix(fileName, "/") && file.IsPathExist(fileName) {
 		return fileName
 	}
 

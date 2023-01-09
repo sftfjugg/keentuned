@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"keentune/daemon/common/utils"
 	"log"
 	"net/rpc"
 	"os"
+	"strings"
 )
 
 // TuneFlag tune options
@@ -63,7 +65,6 @@ type BenchmarkFlag struct {
 	Name      string
 }
 
-
 type MigrateFlag struct {
 	Filepath string
 }
@@ -87,6 +88,10 @@ func remoteImpl(callName string, flag interface{}) {
 	}
 
 	fmt.Printf("%v", reply)
+	if strings.Contains(reply, "[ERROR]") || strings.Contains(reply, utils.ColorString("red", "[ERROR]")) {
+		os.Exit(1)
+	}
+
 	return
 }
 
@@ -169,4 +174,5 @@ func RunRollbackAllRemote() {
 func RunInitRemote() {
 	remoteImpl("system.Init", "")
 }
+
 
