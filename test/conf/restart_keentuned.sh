@@ -31,10 +31,10 @@ restart_keentuned()
     sed -i "s/BENCH_CONFIG.*=.*/BENCH_CONFIG = bench_wrk_nginx_long_multi_target.json/g" $keentuned_conf_path
     echo -e $scene_cmd >> $keentuned_conf_path
 
-    keentuned > keentuned-multi_target.log 2>&1 &
+    #keentuned > keentuned-multi_target.log 2>&1 &
     sleep 5
 }
 
-clear_keentune_env
+#clear_keentune_env
 restart_keentuned
 echo "restart keentuned server successfully!"

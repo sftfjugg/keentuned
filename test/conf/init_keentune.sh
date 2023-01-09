@@ -23,10 +23,10 @@ restart_keentuned()
     sed -i "s/BENCH_DEST_IP.*=.*/BENCH_DEST_IP = ${target_server}/g" $keentuned_conf_path
     echo -e $scene_cmd >> $keentuned_conf_path
 
-    keentuned > keentuned-init.log 2>&1 &
+    #keentuned > keentuned-init.log 2>&1 &
     sleep 5
 }
 
-clear_keentune_env
+#clear_keentune_env
 restart_keentuned
 echo "init keentune successfully!"
