@@ -53,11 +53,11 @@ func setConfigure(setter setVars) {
 	defer setter.wg.Done()
 
 	for {
-		time.Sleep(3 * time.Second)
 		domains, err := com.GetAVLDomain(setter.ip, setter.target.Port)
 		if err == nil && len(domains) > 0 {
 			break
 		}
+		time.Sleep(1 * time.Second)
 	}
 
 	host := fmt.Sprintf("%v:%v", setter.ip, setter.target.Port)

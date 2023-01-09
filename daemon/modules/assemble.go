@@ -306,12 +306,17 @@ func (gp *Group) mergeParam() {
 	}
 }
 
-func (gp *Group) applyReq(ip string, params interface{}) map[string]interface{} {
+func (gp *Group) applyReq(ip string, params interface{}, id ...int) map[string]interface{} {
 	retRequest := map[string]interface{}{}
 	retRequest["data"] = params
 	retRequest["resp_ip"] = config.RealLocalIP
 	retRequest["resp_port"] = config.KeenTune.Port
-	retRequest["target_id"] = config.KeenTune.IPMap[ip]
+	if len(id) > 0 {
+		retRequest["target_id"] = id[0]
+	} else {
+		retRequest["target_id"] = config.KeenTune.IPMap[ip]
+	}
+
 	retRequest["readonly"] = gp.ReadOnly
 	return retRequest
 }
@@ -364,16 +369,9 @@ func (tuner *Tuner) initProfiles() error {
 }
 
 func (gp *Group) getConfigParam(fileName string) (ABNLResult, error) {
-	filePath := config.GetProfilePath(fileName)
-	if filePath == "" {
-		return ABNLResult{}, fmt.Errorf("file '%v' does not exist, expect in '%v' nor in '%v'", fileName,
-			fmt.Sprintf("%s/profile", config.KeenTune.Home),
-			fmt.Sprintf("%s/profile", config.KeenTune.DumpHome))
-	}
-
-	abnormal, resultMap, err := ConvertConfFileToJson(filePath)
+	abnormal, resultMap, err := ConvertConfFileToJson(fileName)
 	if err != nil {
-		return abnormal, fmt.Errorf("convert file '%v' %v", filePath, err)
+		return abnormal, fmt.Errorf("convert file '%v' %v", fileName, err)
 	}
 
 	if len(resultMap) == 0 {
@@ -485,4 +483,5 @@ func (gp *Group) tidyUnavailableParams(kv map[string]string, domain string, warn
 
 	return oneDomainWarning
 }
+
 

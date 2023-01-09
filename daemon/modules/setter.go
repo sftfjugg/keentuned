@@ -29,7 +29,7 @@ func (tuner *Tuner) Set() {
 	tuner.showReco()
 	if err != nil {
 		tuner.showPrefixReco()
-		log.Errorf(log.ProfSet, "%v", err)
+		log.Error(log.ProfSet, err)
 		return
 	}
 
@@ -41,7 +41,7 @@ func (tuner *Tuner) Set() {
 
 	if err = tuner.prepareBeforeSet(); err != nil {
 		tuner.showPrefixReco()
-		log.Error(log.ProfSet, err.Error())
+		log.Errorf(log.ProfSet, err.Error())
 		return
 	}
 
@@ -54,7 +54,8 @@ func (tuner *Tuner) Set() {
 
 	err = tuner.setConfigure()
 	if err != nil {
-		log.Warn(log.ProfSet, err)
+		errMsg := strings.Replace(err.Error(), applyFailureResult, "apply all failed", 1)
+		log.Error(log.ProfSet, errMsg)
 		return
 	}
 
@@ -189,7 +190,7 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 
 	ip := tuner.Group[0].IPs[0]
 	port := tuner.Group[0].Port
-	ipIndex := config.KeenTune.IPMap[ip]
+	ipIndex := config.KeenTune.IPMap[ip] * 2
 	host := fmt.Sprintf("%v:%v", ip, port)
 	tuner.updateGroup(param)
 
@@ -207,7 +208,7 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	}
 
 	reqParam := tuner.Group[0].Params[0]
-	reqBody := tuner.Group[0].applyReq(ip, reqParam)
+	reqBody := tuner.Group[0].applyReq(ip, reqParam, ipIndex)
 	ret, err := Configure(reqBody, host, ipIndex)
 
 	if err != nil {

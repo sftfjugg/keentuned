@@ -214,8 +214,13 @@ func (tg target) configure() (string, map[string]Parameter, error) {
 
 	applyResult, paramInfo, err := tg.GetApplyResult()
 	if err != nil {
-		return applyResult, nil, fmt.Errorf(applyResult)
+		if applyResult != "" {
+			return applyResult, nil, fmt.Errorf(applyResult)
+		}
+
+		return applyResult, nil, err
 	}
+
 	return applyResult, paramInfo, nil
 }
 
