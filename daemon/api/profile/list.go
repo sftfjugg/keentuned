@@ -40,6 +40,7 @@ func (s *Service) List(flag string, reply *string) error {
 			fileListInfo += fmt.Sprintln(name)
 		}
 
+		var activeList, availableList string
 		for _, value := range proFileList[idx] {
 			if value == "active.conf" || value == "default.conf" {
 				continue
@@ -47,12 +48,14 @@ func (s *Service) List(flag string, reply *string) error {
 
 			activeInfo, find := activeDict[value]
 			if find {
-				fileListInfo += fmt.Sprintln(utils.ColorString("GREEN", activeInfo))
+				activeList += fmt.Sprintln(utils.ColorString("GREEN", activeInfo))
 				continue
 			}
 
-			fileListInfo += fmt.Sprintf("\t[available]\t%v\n", value)
+			availableList += fmt.Sprintf("\t[available]\t%v\n", value)
 		}
+
+		fileListInfo += activeList + availableList
 	}
 
 	if len(fileListInfo) == 0 {
