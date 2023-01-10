@@ -194,14 +194,41 @@ func status(w http.ResponseWriter, r *http.Request) {
 func command(w http.ResponseWriter, r *http.Request) {
 	var result = new(string)
 	var err error
+	var resp struct {
+		Suc bool   `json:"suc"`
+		Msg string `json:"msg"`
+	}
 	defer func() {
 		w.WriteHeader(http.StatusOK)
+		var errResp, okResp string
 		if err != nil {
-			w.Write([]byte(fmt.Sprintf("{\"suc\": false, \"msg\": \"%v\"}", err.Error())))
+			resp.Suc = false
+			resp.Msg = fmt.Sprint(err)
+			errResp = fmt.Sprintf("{\"suc\": false, \"msg\": \"%v\"}", err.Error())
+		} else {
+			if strings.Contains(*result, "[ERROR]") {
+				resp.Suc = false
+			} else {
+				resp.Suc = true
+			}
+
+			resp.Msg = *result
+			okResp = fmt.Sprintf("{\"suc\": true, \"msg\": \"%s\"}", *result)
+		}
+
+		bytes, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Println(err)
+			switch resp.Suc {
+			case true:
+				w.Write([]byte(okResp))
+			default:
+				w.Write([]byte(errResp))
+			}
 			return
 		}
 
-		w.Write([]byte(fmt.Sprintf("{\"suc\": true, \"msg\": \"%s\"}", *result)))
+		w.Write(bytes)
 		return
 	}()
 
@@ -269,7 +296,7 @@ func execCmd(inputCmd string, result *string) error {
 }
 
 func getMsg(origin, cmd string) string {
-	if strings.Contains(cmd, "-h") || strings.Contains(cmd, "jobs") {
+	if strings.HasSuffix(cmd, "-h") || strings.Contains(cmd, "jobs") {
 		return origin
 	}
 
@@ -282,8 +309,8 @@ func getMsg(origin, cmd string) string {
 		pureMSg = re.ReplaceAllString(strings.TrimSpace(origin), "$1")
 	}
 
-	changeLinefeed := strings.ReplaceAll(pureMSg, "\n", "\\n")
-	changeTab := strings.ReplaceAll(changeLinefeed, "\t", " ")
+	// changeLinefeed := strings.ReplaceAll(pureMSg, "\n", "\\n")
+	changeTab := strings.ReplaceAll(pureMSg, "\t", " ")
 	return strings.ReplaceAll(strings.TrimSuffix(changeTab, "\\n"), "\"", "'")
 }
 
@@ -308,4 +335,5 @@ func getCmd(body io.ReadCloser) (string, error) {
 
 	return reqInfo.Cmd, nil
 }
+
 
