@@ -88,7 +88,9 @@ func remoteImpl(callName string, flag interface{}) {
 	}
 
 	fmt.Printf("%v", reply)
-	if strings.Contains(reply, "[ERROR]") || strings.Contains(reply, utils.ColorString("red", "[ERROR]")) {
+	if strings.Contains(reply, "[ERROR]") ||
+		strings.Contains(reply, utils.ColorString("red", "[ERROR]")) ||
+		strings.Contains(reply, utils.ColorString("red", "ERROR")) {
 		os.Exit(1)
 	}
 
