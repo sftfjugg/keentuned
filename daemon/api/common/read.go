@@ -201,6 +201,13 @@ func readTargetGroup(grep string, result *string) error {
 				*result += fmt.Sprintf("[target-group-%v]\\n", group.GroupNo)
 				*result += fmt.Sprintf("TARGET_IP = %v\\n", strings.Join(group.IPs, ","))
 				break
+			} else {
+				for _, ip := range group.IPs {
+					if info == ip {
+						*result += fmt.Sprintf("[target-group-%v]\\n", group.GroupNo)
+						*result += fmt.Sprintf("TARGET_IP = %v\\n", ip)
+					}
+				}
 			}
 		}
 	}
@@ -211,4 +218,5 @@ func readTargetGroup(grep string, result *string) error {
 
 	return nil
 }
+
 
