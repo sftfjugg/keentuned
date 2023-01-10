@@ -164,7 +164,8 @@ func UpdateActiveFile(fileName string, info []byte) error {
 // SetDefault set default configuration
 func (tuner *Tuner) SetDefault() (string, string, error) {
 	var recommend string
-	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0])
+	ip := tuner.Group[0].IPs[0]
+	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0], ip)
 	colorWarn := utils.ColorString("yellow", "[Warning]")
 	if abn.Recommend != "" {
 		recs := strings.Split(abn.Recommend, multiRecordSeparator)
@@ -188,7 +189,6 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 		return recommend, "", err
 	}
 
-	ip := tuner.Group[0].IPs[0]
 	port := tuner.Group[0].Port
 	ipIndex := config.KeenTune.IPMap[ip] * 2
 	host := fmt.Sprintf("%v:%v", ip, port)

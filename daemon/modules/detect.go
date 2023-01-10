@@ -31,10 +31,10 @@ type ABNLResult struct {
 	Warning   string
 }
 
-func calculateCondition(content string, macros []string) (string, bool) {
+func calculateCondition(content string, macros []string, ip string) (string, bool) {
 	// detectedMacroValue used for replace macro with value by func convertString
 	detectedMacroValue := make(map[string]string)
-	if err := getMacroValue(macros, detectedMacroValue); err != nil {
+	if err := getMacroValue(macros, detectedMacroValue, ip); err != nil {
 		return err.Error(), false
 	}
 
@@ -59,12 +59,18 @@ func isConditionExp(content string) bool {
 	return matchMacro && matchCond
 }
 
-func detectConfValue(re *regexp.Regexp, valueStr string, paramName string) (string, map[string]interface{}, error) {
+func detectConfValue(re *regexp.Regexp, valueStr string, paramName string, ip string) (string, map[string]interface{}, error) {
 	macros := utils.RemoveRepeated(re.FindAllString(strings.ReplaceAll(valueStr, " ", ""), -1))
-	detectedMacroValue := make(map[string]string)
 
-	if isConditionExp(valueStr) && len(macros) > 0 {
-		expression, condMatched := calculateCondition(valueStr, macros)
+	if len(macros) == 0 {
+		return "", nil, fmt.Errorf("detect '%v' found macros length is 0", valueStr)
+	}
+
+	if isDetectMapString(paramName, valueStr) {
+		return detectSpecVarMap(paramName, valueStr, ip)
+	}
+	if isConditionExp(valueStr) {
+		expression, condMatched := calculateCondition(valueStr, macros, ip)
 		if condMatched {
 			return "", nil, nil
 		}
@@ -72,7 +78,8 @@ func detectConfValue(re *regexp.Regexp, valueStr string, paramName string) (stri
 		return expression, nil, nil
 	}
 
-	value, err := getExtremeValue(macros, detectedMacroValue, valueStr)
+	detectedMacroValue := make(map[string]string)
+	value, err := getExtremeValue(macros, detectedMacroValue, valueStr, ip)
 	if err != nil {
 		return "", nil, fmt.Errorf("detect '%v'err: %v", paramName, err)
 	}
@@ -86,9 +93,57 @@ func detectConfValue(re *regexp.Regexp, valueStr string, paramName string) (stri
 	return "", param, nil
 }
 
-func detect(data []string, macroNames []string, detectedMacroValue map[string]string) error {
+func detectSpecVarMap(paramName string, valueStr string, ip string) (string, map[string]interface{}, error) {
+	methodName := detectSpecEnvDict[paramName]
+	if methodName == "" {
+		return "", nil, fmt.Errorf("methodName '%v' not defined", paramName)
+	}
+
+	requestMap := getMethodReqByNames([]string{methodName})
+	url := fmt.Sprintf("%v:%v/method", ip, config.KeenTune.Group[0].Port)
+	respByte, err := http.RemoteCall("POST", url, requestMap)
+	if err != nil {
+		return "", nil, fmt.Errorf("remote call err:%v", err)
+	}
+
+	var resp []methodResp
+	err = json.Unmarshal(respByte, &resp)
+	if err != nil || len(resp) == 0 {
+		return "", nil, fmt.Errorf("unmarshal method response err:%v", err)
+	}
+
+	var detectedValue string
+	detectedValue = methodResultDict[methodName][resp[0].Result]
+	if detectedValue == "" {
+		detectedValue = methodResultDict[methodName]["default"]
+	}
+
+	param := genParam(detectedValue, paramName)
+	return "", param, nil
+}
+
+func isDetectMapString(paramName, valueStr string) bool {
+	regMacro := regexp.MustCompile(defDetectMapReg)
+	if regMacro == nil {
+		return false
+	}
+	matched := regMacro.MatchString(valueStr)
+	replacedMacro := utils.RemoveRepeated(regMacro.FindAllString(valueStr, -1))
+	if len(replacedMacro) == 0 {
+		return false
+	}
+
+	detectVar := strings.TrimSuffix(strings.TrimPrefix(replacedMacro[0], "#?"), "#")
+	if matched && detectVar == paramName {
+		return true
+	}
+
+	return false
+}
+
+func detect(data []string, macroNames []string, detectedMacroValue map[string]string, ip string) error {
 	requestMap := getMethodReqByNames(data)
-	url := fmt.Sprintf("%v:%v/method", config.KeenTune.BenchGroup[0].DestIP, config.KeenTune.Group[0].Port)
+	url := fmt.Sprintf("%v:%v/method", ip, config.KeenTune.Group[0].Port)
 	respByte, err := http.RemoteCall("POST", url, requestMap)
 	if err != nil {
 		return fmt.Errorf("remote call err:%v", err)
@@ -124,6 +179,7 @@ func detect(data []string, macroNames []string, detectedMacroValue map[string]st
 }
 
 func detectParam(param *Parameter) error {
+	destIP := config.KeenTune.BenchGroup[0].DestIP
 	if len(param.Scope) > 0 {
 		var range2Int []interface{}
 		var detectedMacroValue = make(map[string]string)
@@ -136,7 +192,7 @@ func detectParam(param *Parameter) error {
 			macroString, ok := v.(string)
 			re, _ := regexp.Compile(defMarcoString)
 			macros := utils.RemoveRepeated(re.FindAllString(strings.ReplaceAll(macroString, " ", ""), -1))
-			calcResult, err := getExtremeValue(macros, detectedMacroValue, macroString)
+			calcResult, err := getExtremeValue(macros, detectedMacroValue, macroString, destIP)
 			if err != nil {
 				return fmt.Errorf("'%v' calculate range err: %v", param.ParaName, err)
 			}
@@ -156,7 +212,7 @@ func detectParam(param *Parameter) error {
 			}
 
 			macros := utils.RemoveRepeated(re.FindAllString(strings.ReplaceAll(v, " ", ""), -1))
-			calcResult, err := getExtremeValue(macros, detectedMacroValue, v)
+			calcResult, err := getExtremeValue(macros, detectedMacroValue, v, destIP)
 			if err != nil {
 				return fmt.Errorf("'%v' calculate option err: %v", param.ParaName, err)
 			}

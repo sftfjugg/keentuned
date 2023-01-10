@@ -30,8 +30,10 @@ type Parameter struct {
 }
 
 const (
-	defMarcoString = "#!([0-9A-Za-z_]+)#"
-	recommendReg   = "^recommend.*"
+	defDetectAllReg = "#(!|\\?)([0-9A-Za-z_]+)#"
+	defMarcoString  = "#!([0-9A-Za-z_]+)#"
+	defDetectMapReg = "#\\?([0-9A-Za-z_]+)#"
+	recommendReg    = "^recommend.*"
 )
 
 // updateParameter update the partial param by the total param
@@ -117,12 +119,12 @@ func modifyParam(originMap *map[string]interface{}, compareMap map[string]interf
 	return nil
 }
 
-func getExtremeValue(macros []string, detectedMacroValue map[string]string, macroString string) (int64, error) {
+func getExtremeValue(macros []string, detectedMacroValue map[string]string, macroString string, ip string) (int64, error) {
 	if len(macros) == 0 {
 		return 0, fmt.Errorf("range type is '%v', but macros length is 0", macroString)
 	}
 
-	if err := getMacroValue(macros, detectedMacroValue); err != nil {
+	if err := getMacroValue(macros, detectedMacroValue, ip); err != nil {
 		return 0, fmt.Errorf("get detect value failed: %v", err)
 	}
 
@@ -178,7 +180,7 @@ func convertString(macroString string, macroMap map[string]string) (string, stri
 	return retStr, "", nil
 }
 
-func getMacroValue(macros []string, detectedMacroValue map[string]string) error {
+func getMacroValue(macros []string, detectedMacroValue map[string]string, ip string) error {
 	if len(macros) == 0 {
 		return nil
 	}
@@ -202,18 +204,18 @@ func getMacroValue(macros []string, detectedMacroValue map[string]string) error 
 		return nil
 	}
 
-	return detect(macroReqNames, macroOrgNames, detectedMacroValue)
+	return detect(macroReqNames, macroOrgNames, detectedMacroValue, ip)
 }
 
 // ConvertConfFileToJson convert conf file to json
-func ConvertConfFileToJson(fileName string) (ABNLResult, map[string]map[string]interface{}, error) {
+func ConvertConfFileToJson(fileName string, ip ...string) (ABNLResult, map[string]map[string]interface{}, error) {
 	var abnormal = ABNLResult{}
 	replacedStr, err := readConfFile(fileName)
 	if err != nil {
 		return abnormal, nil, err
 	}
 
-	commonDomain, recommendMap, domainMap := parseConfStrToMapSlice(replacedStr, fileName, &abnormal)
+	commonDomain, recommendMap, domainMap := parseConfStrToMapSlice(replacedStr, fileName, &abnormal, ip...)
 
 	for key, value := range recommendMap {
 		abnormal.Recommend += fmt.Sprintf("\t[%v]\n%v", key, strings.Join(value, ""))
@@ -271,7 +273,7 @@ func changeMapSliceToDBLMap(domainMap map[string][]map[string]interface{}, abnor
 //        1: recommend summery info
 //        2: map slice, design this data structure to avoid duplication and leakage
 // parseConfStrToMapSlice ...
-func parseConfStrToMapSlice(replacedStr, fileName string, abnormal *ABNLResult) (string, map[string][]string, map[string][]map[string]interface{}) {
+func parseConfStrToMapSlice(replacedStr, fileName string, abnormal *ABNLResult, ip ...string) (string, map[string][]string, map[string][]map[string]interface{}) {
 	var deleteDomain string
 	var recommendMap = make(map[string][]string)
 	var domainMap = make(map[string][]map[string]interface{})
@@ -296,7 +298,7 @@ func parseConfStrToMapSlice(replacedStr, fileName string, abnormal *ABNLResult) 
 		}
 
 		if commonDomain == tunedMainDomain {
-			includeMap = parseIncludeConf(pureLine, abnormal)
+			includeMap = parseIncludeConf(pureLine, abnormal, ip...)
 			continue
 		}
 
@@ -334,7 +336,7 @@ func parseConfStrToMapSlice(replacedStr, fileName string, abnormal *ABNLResult) 
 			pureLine = replaceVariables(variableMap, pureLine)
 		}
 
-		recommend, condition, param, err := readLine(pureLine)
+		recommend, condition, param, err := readLine(pureLine, ip...)
 		if len(condition) != 0 {
 			deleteDomain = commonDomain
 			if commonDomain == myConfDomain {
@@ -412,7 +414,7 @@ func collectConfVariables(pureLine string, variableMap map[string]string, variab
 	variableMap[varName] = varValue
 }
 
-func parseIncludeConf(pureLine string, abnormal *ABNLResult) map[string][]map[string]interface{} {
+func parseIncludeConf(pureLine string, abnormal *ABNLResult, ip ...string) map[string][]map[string]interface{} {
 	if !strings.Contains(pureLine, tunedIncludeField) {
 		return nil
 	}
@@ -429,7 +431,7 @@ func parseIncludeConf(pureLine string, abnormal *ABNLResult) map[string][]map[st
 		return nil
 	}
 
-	_, _, includeMap := parseConfStrToMapSlice(includeInfo, includeFile, abnormal)
+	_, _, includeMap := parseConfStrToMapSlice(includeInfo, includeFile, abnormal, ip...)
 	return includeMap
 }
 
@@ -446,22 +448,22 @@ func mergedMapSlice(domainMap map[string][]map[string]interface{}, includeMap ma
 	return mergedMap
 }
 
-func readLine(line string) (string, string, map[string]interface{}, error) {
+func readLine(line string, ip ...string) (string, string, map[string]interface{}, error) {
 	paramSlice := strings.Split(line, ":")
 	partLen := len(paramSlice)
 	switch {
 	case partLen <= 1:
 		return "", "", nil, fmt.Errorf("param %v length %v is invalid, required: 2", paramSlice, len(paramSlice))
 	case partLen == 2:
-		return getParam(paramSlice)
+		return getParam(paramSlice, ip...)
 	default:
 		newSlice := []string{paramSlice[0]}
 		newSlice = append(newSlice, strings.Join(paramSlice[1:], ":"))
-		return getParam(newSlice)
+		return getParam(newSlice, ip...)
 	}
 }
 
-func getParam(paramSlice []string) (string, string, map[string]interface{}, error) {
+func getParam(paramSlice []string, ip ...string) (string, string, map[string]interface{}, error) {
 	paramName := strings.TrimSpace(paramSlice[0])
 	valueStr := strings.ReplaceAll(strings.TrimSpace(paramSlice[1]), "\"", "")
 
@@ -470,9 +472,9 @@ func getParam(paramSlice []string) (string, string, map[string]interface{}, erro
 		return recommend, "", nil, nil
 	}
 
-	re, _ := regexp.Compile(defMarcoString)
-	if re != nil && re.MatchString(valueStr) {
-		expression, param, err := detectConfValue(re, valueStr, paramName)
+	re, _ := regexp.Compile(defDetectAllReg)
+	if re != nil && re.MatchString(valueStr) && len(ip) > 0 {
+		expression, param, err := detectConfValue(re, valueStr, paramName, ip[0])
 		// replace expression to real condition when expression is not empty
 		if expression != "" {
 			return "", valueStr, nil, nil
@@ -481,6 +483,11 @@ func getParam(paramSlice []string) (string, string, map[string]interface{}, erro
 		return "", "", param, err
 	}
 
+	param := genParam(valueStr, paramName)
+	return "", "", param, nil
+}
+
+func genParam(valueStr string, paramName string) map[string]interface{} {
 	var param map[string]interface{}
 	// remove inline comments
 	var rmCommentVal string
@@ -497,7 +504,7 @@ func getParam(paramSlice []string) (string, string, map[string]interface{}, erro
 			"dtype": "string",
 			"name":  paramName,
 		}
-		return "", "", param, nil
+		return param
 	}
 
 	param = map[string]interface{}{
@@ -505,7 +512,7 @@ func getParam(paramSlice []string) (string, string, map[string]interface{}, erro
 		"dtype": "int",
 		"name":  paramName,
 	}
-	return "", "", param, nil
+	return param
 }
 
 func isRecommend(valueStr string, paramName string) (string, bool) {

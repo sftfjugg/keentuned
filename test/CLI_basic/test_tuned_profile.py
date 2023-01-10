@@ -60,7 +60,7 @@ class TestTunedProfile(unittest.TestCase):
     def test_balanced_FUN(self):
         cmd = 'keentune profile set balanced.conf'
         self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
+        self.assertEqual(self.status, 1)
         self.assertIn("[cpu]\t0 Succeeded, 1 Failed", self.out)
 
     def test_cpu_partitioning_FUN(self):
@@ -75,7 +75,7 @@ class TestTunedProfile(unittest.TestCase):
     def test_desktop_powersave_FUN(self):
         cmd = 'keentune profile set desktop-powersave.conf'
         self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
+        self.assertEqual(self.status, 1)
         self.assertIn("All of the domain backup failed", self.out)
 
     def test_desktop_FUN(self):
@@ -94,7 +94,7 @@ class TestTunedProfile(unittest.TestCase):
     def test_intel_sst_FUN(self):
         cmd = 'keentune profile set intel-sst.conf'
         self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
+        self.assertEqual(self.status, 1)
         self.assertIn("No valid domain can be used", self.out)
 
     def test_latency_performance_FUN(self):
@@ -145,7 +145,7 @@ class TestTunedProfile(unittest.TestCase):
     def test_powersave_FUN(self):
         cmd = 'keentune profile set powersave.conf'
         self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
+        self.assertEqual(self.status, 1)
         self.assertIn("All of the domain backup failed", self.out)
     
     def test_realtime_FUN(self):
@@ -159,7 +159,7 @@ class TestTunedProfile(unittest.TestCase):
     def test_server_powersave_FUN(self):
         cmd = 'keentune profile set server-powersave.conf'
         self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
+        self.assertEqual(self.status, 1)
         self.assertIn("All of the domain backup failed", self.out)
 
     def test_spindown_disk_FUN(self):

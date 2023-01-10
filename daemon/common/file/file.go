@@ -87,7 +87,7 @@ func Dump2File(path, fileName string, info interface{}) error {
 
 //  WalkFilePath walk file path
 // return: 0) full paths; 1) file names; 2) err msg
-func WalkFilePath(folder, match string) ([]string, []string, error) {
+func WalkFilePath(folder, match string, exact ...bool) ([]string, []string, error) {
 	var files, fullPaths []string
 
 	filepath.Walk(folder, func(path string, fi os.FileInfo, err error) error {
@@ -101,10 +101,17 @@ func WalkFilePath(folder, match string) ([]string, []string, error) {
 		}
 
 		var fileName string
-		if !fi.IsDir() && strings.Contains(path, match) {
+		if !fi.IsDir() {
 			fileName = pathSections[len(pathSections)-1]
-			files = append(files, fileName)
-			fullPaths = append(fullPaths, path)
+			if len(exact) > 0 && exact[0] && fileName == match {
+				files = append(files, fileName)
+				fullPaths = append(fullPaths, path)
+			}
+
+			if len(exact) == 0 && strings.Contains(path, match) {
+				files = append(files, fileName)
+				fullPaths = append(fullPaths, path)
+			}
 		}
 
 		return nil
@@ -205,4 +212,5 @@ func Copy(src, dst string) error {
 	err = ioutil.WriteFile(dst, input, 0666)
 	return err
 }
+
 
