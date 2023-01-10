@@ -369,7 +369,7 @@ func (tuner *Tuner) initProfiles() error {
 }
 
 func (gp *Group) getConfigParam(fileName string) (ABNLResult, error) {
-	abnormal, resultMap, err := ConvertConfFileToJson(fileName)
+	abnormal, resultMap, err := ConvertConfFileToJson(fileName, gp.IPs[0])
 	if err != nil {
 		return abnormal, fmt.Errorf("convert file '%v' %v", fileName, err)
 	}
