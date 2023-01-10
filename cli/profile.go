@@ -191,7 +191,8 @@ func bindFileToGroup(args []string, setFlag SetFlag) {
 }
 
 func checkProfile(fileName string) (string, error) {
-	fullPath, homeFileList, _ := file.WalkFilePath(config.GetProfileHomePath(""), fileName)
+	var exactMatch = true
+	fullPath, homeFileList, _ := file.WalkFilePath(config.GetProfileHomePath(""), fileName, exactMatch)
 	dir, _ := path.Split(fileName)
 	// A file with the same name appears and no parent directory is specified
 	if len(homeFileList) > 1 && len(strings.TrimSpace(dir)) == 0 {
