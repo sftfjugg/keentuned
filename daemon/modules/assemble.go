@@ -340,6 +340,7 @@ func (tuner *Tuner) initProfiles() error {
 		}
 
 		var target = new(Group)
+		target.IPs = group.IPs
 		confFile := tuner.Setter.ConfFile[groupIdx]
 		abnormal, err := target.getConfigParam(confFile)
 		if !strings.Contains(tuner.recommend, abnormal.Recommend) {
@@ -354,7 +355,6 @@ func (tuner *Tuner) initProfiles() error {
 			return err
 		}
 
-		target.IPs = group.IPs
 		target.Port = group.Port
 		target.GroupName = group.GroupName
 		target.GroupNo = group.GroupNo
