@@ -1,8 +1,8 @@
 %define debug_package %{nil}
-%define anolis_release 1
+%define anolis_release 0
 
 Name:           keentuned
-Version:        2.0.0
+Version:        2.0.1
 Release:        %{?anolis_release}%{?dist}
 Url:            https://gitee.com/anolis/keentuned
 Summary:        KeenTune tuning tools
@@ -66,7 +66,7 @@ fi
 %{_prefix}/share/bash-completion/completions/keentune.bash
 
 %changelog
-* Wed Jan 11 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-1
+* Wed Jan 11 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.1
 - add: Update profile set for UI
 - fix: Reduce the delay of default setting
 - fix: other known important bug fixes
