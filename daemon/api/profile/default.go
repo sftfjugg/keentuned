@@ -4,10 +4,12 @@ import (
 	"fmt"
 	com "keentune/daemon/api/common"
 	"keentune/daemon/common/config"
+	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
 	m "keentune/daemon/modules"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -60,36 +62,10 @@ func setConfigure(setter setVars) {
 		time.Sleep(1 * time.Second)
 	}
 
-	host := fmt.Sprintf("%v:%v", setter.ip, setter.target.Port)
-	envConds, err := m.GetEnvCondition(setter.param, host)
-	if err != nil {
-		log.Errorf("", "host '%v' get environment condition err %v", setter.ip, err)
-		return
-	}
-
 	var tuner = &m.Tuner{}
-	var recConf string
 
-	for recommendConf, compares := range setter.param {
-		match := true
-		for name, regulation := range compares {
-			rule := fmt.Sprint(regulation.(map[string]interface{})["value"])
-			res, _ := regexp.MatchString(rule, envConds[name])
-			match = match && res
-		}
-
-		if match {
-			recConf = recommendConf
-			recommendConf = fmt.Sprintf("%v.conf", recommendConf)
-			fileName := config.GetProfileHomePath(recommendConf)
-			tuner.Setter.ConfFile = []string{fileName}
-			break
-		}
-	}
-
-	if len(tuner.Setter.ConfFile) != 1 {
-		fmt.Printf("%v No recommended configuration found for '%v'\n", colorWarn, setter.ip)
-		log.Warnf("", "No recommended configuration found for '%v'", setter.ip)
+	recConf, find := getSuitableConf(setter, tuner)
+	if !find {
 		return
 	}
 
@@ -118,6 +94,82 @@ func setConfigure(setter setVars) {
 
 	fmt.Print(setResult)
 	log.Info("", setResult)
+}
+
+func getSuitableConf(setter setVars, tuner *m.Tuner) (string, bool) {
+	// First priority: find the last active conf
+	activeConf := getActiveConf(setter.target.GroupNo, setter.ip)
+	if activeConf != "" {
+		fileName := config.GetProfileHomePath(activeConf)
+		tuner.Setter.ConfFile = []string{fileName}
+		return activeConf, true
+	}
+
+	// Check the default configuration switch
+	if !config.KeenTune.DefaultSet {
+		skipInfo := fmt.Sprintf("Skip default setting for '%v', due to active profile not found and 'DEFAULT_AUTO_SET' is false in keentuned.conf.", setter.ip)
+		fmt.Printf("\n[%v] %v\n", utils.ColorString("yellow", "Warning"), skipInfo)
+		log.Warn("", skipInfo)
+		return "", false
+	}
+
+	host := fmt.Sprintf("%v:%v", setter.ip, setter.target.Port)
+	envConds, err := m.GetEnvCondition(setter.param, host)
+	if err != nil {
+		log.Errorf("", "host '%v' get environment condition err %v", setter.ip, err)
+		return "", false
+	}
+
+	var recConf string
+	for recommendConf, compares := range setter.param {
+		match := true
+		for name, regulation := range compares {
+			rule := fmt.Sprint(regulation.(map[string]interface{})["value"])
+			res, _ := regexp.MatchString(rule, envConds[name])
+			match = match && res
+		}
+
+		if match {
+			recConf = recommendConf
+			recommendConf = fmt.Sprintf("%v.conf", recommendConf)
+			fileName := config.GetProfileHomePath(recommendConf)
+			tuner.Setter.ConfFile = []string{fileName}
+			break
+		}
+	}
+
+	if len(tuner.Setter.ConfFile) != 1 {
+		fmt.Printf("%v No recommended configuration found for '%v'\n", colorWarn, setter.ip)
+		log.Warnf("", "No recommended configuration found for '%v'", setter.ip)
+		return "", false
+	}
+
+	return recConf, true
+}
+
+func getActiveConf(groupNo int, ip string) string {
+	var fileName string
+	groupNoStr := fmt.Sprint(groupNo)
+	activeFileName := config.GetProfileWorkPath("active.conf")
+	records, _ := file.GetAllRecords(activeFileName)
+	for _, record := range records {
+		if len(record) == 2 {
+			ids := strings.Split(record[1], " ")
+			for _, idInfo := range ids {
+				if idInfo == ip {
+					fileName = record[0]
+					return fileName
+				}
+
+				if strings.TrimPrefix(idInfo, "group") == groupNoStr {
+					fileName = record[0]
+					return fileName
+				}
+			}
+		}
+	}
+
+	return fileName
 }
 
 
