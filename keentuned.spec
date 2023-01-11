@@ -1,5 +1,5 @@
 %define debug_package %{nil}
-%define anolis_release 0
+%define anolis_release 1
 
 Name:           keentuned
 Version:        2.0.0
@@ -52,6 +52,7 @@ fi
 %doc README.md docs/*
 %attr(0755, root, root) %{_bindir}/keentune
 %attr(0755, root, root) %{_bindir}/keentuned
+%attr(0666, root, root) %{_sysconfdir}/keentune/conf/keentuned.conf
 %dir %{_sysconfdir}/keentune
 %dir %{_sysconfdir}/keentune/conf
 %{_sysconfdir}/keentune
@@ -65,9 +66,13 @@ fi
 %{_prefix}/share/bash-completion/completions/keentune.bash
 
 %changelog
+* Wed Jan 11 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-1
+- add: Update profile set for UI
+- fix: Reduce the delay of default setting
+- fix: other known important bug fixes
+
 * Thu Dec 15 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-0
 - Support experience tuning of Tuned
-
 
 * Thu Sep 22 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 1.4.0-0
 - add: Support UI Intelligent tuning and Sensitive parameter identification
@@ -134,3 +139,4 @@ fi
 - use '%license' macro
 - update license to MulanPSLv2
 - Init Keentuned.
+
