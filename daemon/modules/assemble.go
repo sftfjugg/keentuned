@@ -404,27 +404,20 @@ func (gp *Group) deleteUnAVLConf(unAVLParams []map[string]map[string]string) (st
 				gp.UnAVLParams[domain] = make(map[string]string)
 			}
 
-			if len(kv) == 0 {
-				if params[domain] == nil {
-					// domain is all available, skip
-					continue
-				}
+			if params[domain] == nil {
+				// domain is all available, skip
+				continue
+			}
 
+			notMetInfo, ok := params[domain][domain]
+			if ok {
 				// domain is all unavailable
 				unAVLCount += len(gp.MergedParam[domain].(map[string]interface{}))
 				for priorityIdx := range gp.Params {
 					delete(gp.Params[priorityIdx], domain)
 				}
 
-				var notMetInfo string
-				if domain == myConfDomain {
-					notMetInfo = fmt.Sprintf(backupENVNotMetFmt, myConfBackupFile, myConfApp)
-				} else {
-					notMetInfo = fmt.Sprintf(backupENVNotMetFmt, "["+domain+"]", "the APP")
-				}
-
 				decoratedWarnInfo := fmt.Sprintf("%v%v", notMetInfo, multiRecordSeparator)
-
 				retWarnInfo = append(retWarnInfo, decoratedWarnInfo)
 				isAllUnAVL = isAllUnAVL || unAVLCount == gp.ParamTotal
 				continue
