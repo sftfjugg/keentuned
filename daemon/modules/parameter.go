@@ -424,7 +424,7 @@ func parseIncludeConf(pureLine string, abnormal *ABNLResult, ip ...string) map[s
 		return nil
 	}
 
-	includeFile := fmt.Sprintf("%v.conf", strings.TrimSpace(pairs[1]))
+	includeFile := fmt.Sprintf("%v.conf", strings.TrimSuffix(strings.TrimSpace(pairs[1]), ".conf"))
 	includeInfo, err := readConfFile(config.GetProfileHomePath(includeFile))
 	if err != nil {
 		abnormal.Warning += fmt.Sprintf("Read include file '%v' failed%v", pairs[1], multiRecordSeparator)
