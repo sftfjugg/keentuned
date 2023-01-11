@@ -91,7 +91,7 @@ func (tuner *Tuner) apply(wg *sync.WaitGroup, targetFinishStatus []string, req r
 		wg.Done()
 		config.IsInnerApplyRequests[req.ipIndex] = false
 		if errMsg != nil {
-			targetFinishStatus[req.ipIndex-1] = fmt.Sprintf("%v %v: %v", identity, applyFailureResult, errMsg)
+			targetFinishStatus[req.ipIndex-1] = fmt.Sprintf("%v %v:\n%v", identity, applyFailureResult, errMsg)
 		}
 	}()
 

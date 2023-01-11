@@ -72,9 +72,9 @@ func (tg target) collectParam(applyResp map[string]interface{}) (string, map[str
 
 	for domain, paramMap := range applyResp {
 		var sucCount, failedCount, skippedCount int
-		var failedInfoSlice [][]string
+		var failedInfoSlice []string
 
-		setResult += fmt.Sprintf("%v[%v]\t", tg.desSeparator, domain)
+		setResult += fmt.Sprintf("%v[%v] ", tg.desSeparator, domain)
 
 		parameter, _ := paramMap.(map[string]interface{})
 
@@ -105,11 +105,9 @@ func (tg target) collectParam(applyResp map[string]interface{}) (string, map[str
 
 			failedCount++
 			totalFailed++
-			if failedCount == 1 {
-				failedInfoSlice = append(failedInfoSlice, []string{"param name", "failed reason"})
-			}
 			msg := strings.ReplaceAll(fmt.Sprint(detail.Msg), "\n", ". ")
-			failedInfoSlice = append(failedInfoSlice, []string{name, msg})
+			redFailed := utils.ColorString("red", "FAILED")
+			failedInfoSlice = append(failedInfoSlice, fmt.Sprintf("%v[%v] %v: %v", tg.tabSeparator, redFailed, name, msg))
 		}
 
 		successInfo := fmt.Sprintf("%v Succeeded, %v Failed, %v Skipped", sucCount, failedCount, skippedCount)
@@ -118,8 +116,8 @@ func (tg target) collectParam(applyResp map[string]interface{}) (string, map[str
 			continue
 		}
 
-		failedDetail := utils.FormatInTable(failedInfoSlice, tg.tabSeparator)
-		setResult += fmt.Sprintf("%v; the failed details:%s\n", successInfo, failedDetail)
+		failedDetail := strings.Join(failedInfoSlice, "\n")
+		setResult += fmt.Sprintf("%v\n%s\n", successInfo, failedDetail)
 	}
 
 	if totalFailed == len(paramCollection) {
