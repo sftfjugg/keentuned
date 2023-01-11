@@ -38,6 +38,7 @@ type Default struct {
 	Port          string `ini:"PORT"`
 	HeartbeatTime int    `ini:"HEARTBEAT_TIME"`
 	DumpHome      string `ini:"DUMP_HOME"`
+	DefaultSet    bool   `ini:"DEFAULT_AUTO_SET"`
 	// dump control ...
 	BaseDump bool `ini:"DUMP_BASELINE_CONFIGURATION"`
 	ExecDump bool `ini:"DUMP_TUNING_CONFIGURATION"`
@@ -199,6 +200,7 @@ func (c *KeentunedConf) getDefault(cfg *ini.File) {
 	c.ExecDump = keentune.Key("DUMP_TUNING_CONFIGURATION").MustBool(false)
 	c.BestDump = keentune.Key("DUMP_BEST_CONFIGURATION").MustBool(false)
 	c.DumpHome = keentune.Key("DUMP_HOME").MustString("")
+	c.DefaultSet = keentune.Key("DEFAULT_AUTO_SET").MustBool(false)
 	c.VersionConf = keentune.Key("VERSION_NUM").MustString("")
 
 	c.BaseRound = keentune.Key("BASELINE_BENCH_ROUND").MustInt(1)
