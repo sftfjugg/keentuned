@@ -6,13 +6,14 @@ import (
 	"keentune/daemon/common/utils/http"
 )
 
-var (
-	backupENVNotMetFmt = "Can't find %v, please check %v is installed"
-)
-
 // application
 const (
 	myConfApp = "MySQL"
+)
+
+// avoid domain
+const (
+	selinuxDomain = "selinux"
 )
 
 const (
@@ -20,6 +21,15 @@ const (
 )
 
 const backupAllErr = "All of the domain backup failed"
+
+var (
+	backupENVNotMetFmt = "Can't find %v, please check %v is installed"
+)
+
+var unavailableDomainReason = map[string]string{
+	myConfDomain:  fmt.Sprintf(backupENVNotMetFmt, myConfBackupFile, myConfApp),
+	selinuxDomain: fmt.Sprintf("unvaliable domain '%v': %v", selinuxDomain, notSupportRecommend),
+}
 
 func (tuner *Tuner) backup() error {
 	err := tuner.concurrent("backup")
@@ -57,10 +67,20 @@ func callBackup(method, url string, request interface{}) (map[string]map[string]
 	var unAVLParam = make(map[string]map[string]string)
 
 	for domain, param := range req {
-		_, match := response[domain].(string)
+		reason, match := response[domain].(string)
 		if match {
 			// whole domain is not available
-			unAVLParam[domain] = map[string]string{}
+			defReason, ok := unavailableDomainReason[domain]
+			if ok {
+				unAVLParam[domain] = map[string]string{
+					domain: defReason,
+				}
+			} else {
+				unAVLParam[domain] = map[string]string{
+					domain: reason,
+				}
+			}
+
 			continue
 		}
 
