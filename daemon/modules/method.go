@@ -189,7 +189,7 @@ func requestAllVariables(destMap map[string]string, reqMap map[string]interface{
 }
 
 // GetEnvCondition get environment condition by remote call '/method'
-func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[string]string, error) {
+func GetEnvCondition(param []map[string]map[string]string, host string) (map[string]string, error) {
 	names, req, err := parseEnvCondReq(param)
 	if err != nil {
 		return nil, err
@@ -224,14 +224,16 @@ func GetEnvCondition(param map[string]map[string]interface{}, host string) (map[
 	return destMap, nil
 }
 
-func parseEnvCondReq(param map[string]map[string]interface{}) ([]string, []methodReq, error) {
+func parseEnvCondReq(param []map[string]map[string]string) ([]string, []methodReq, error) {
 	var methodNames = make(map[string]string)
-	for _, conds := range param {
-		for cond := range conds {
-			_, find := methodNames[cond]
-			if !find {
-				methodNames[cond] = "true"
-				continue
+	for _, domainCondDict := range param {
+		for _, conds := range domainCondDict {
+			for cond := range conds {
+				_, find := methodNames[cond]
+				if !find {
+					methodNames[cond] = "true"
+					continue
+				}
 			}
 		}
 	}

@@ -18,7 +18,7 @@ type setVars struct {
 	ip     string
 	wg     *sync.WaitGroup
 	target config.Group
-	param  config.DBLMap
+	param  []map[string]map[string]string
 }
 
 var (
@@ -27,7 +27,7 @@ var (
 
 func SetDefault() () {
 	defaultConf := config.GetProfileHomePath("default.conf")
-	_, param, err := m.ConvertConfFileToJson(defaultConf)
+	param, err := m.ConvertToSequentialDict(defaultConf)
 	if err != nil {
 		log.Errorf("", "read default conf err %v\n", err)
 		return
@@ -105,14 +105,6 @@ func getSuitableConf(setter setVars, tuner *m.Tuner) (string, bool) {
 		return activeConf, true
 	}
 
-	// Check the default configuration switch
-	if !config.KeenTune.DefaultSet {
-		skipInfo := fmt.Sprintf("Skip default setting for '%v', due to active profile not found and 'DEFAULT_AUTO_SET' is false in keentuned.conf.", setter.ip)
-		fmt.Printf("\n[%v] %v\n", utils.ColorString("yellow", "Warning"), skipInfo)
-		log.Warn("", skipInfo)
-		return "", false
-	}
-
 	host := fmt.Sprintf("%v:%v", setter.ip, setter.target.Port)
 	envConds, err := m.GetEnvCondition(setter.param, host)
 	if err != nil {
@@ -121,19 +113,26 @@ func getSuitableConf(setter setVars, tuner *m.Tuner) (string, bool) {
 	}
 
 	var recConf string
-	for recommendConf, compares := range setter.param {
-		match := true
-		for name, regulation := range compares {
-			rule := fmt.Sprint(regulation.(map[string]interface{})["value"])
-			res, _ := regexp.MatchString(rule, envConds[name])
-			match = match && res
+	var find bool
+	for _, domainDict := range setter.param {
+		for recommendConf, compares := range domainDict {
+			match := true
+			for name, pattern := range compares {
+				res, _ := regexp.MatchString(pattern, envConds[name])
+				match = match && res
+			}
+
+			if match {
+				recConf = recommendConf
+				recommendConf = fmt.Sprintf("%v.conf", recommendConf)
+				fileName := config.GetProfileHomePath(recommendConf)
+				tuner.Setter.ConfFile = []string{fileName}
+				find = true
+				break
+			}
 		}
 
-		if match {
-			recConf = recommendConf
-			recommendConf = fmt.Sprintf("%v.conf", recommendConf)
-			fileName := config.GetProfileHomePath(recommendConf)
-			tuner.Setter.ConfFile = []string{fileName}
+		if find {
 			break
 		}
 	}

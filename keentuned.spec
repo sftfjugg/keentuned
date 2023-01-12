@@ -1,5 +1,5 @@
 %define debug_package %{nil}
-%define anolis_release 0
+%define anolis_release 1
 
 Name:           keentuned
 Version:        2.0.1
@@ -139,4 +139,5 @@ fi
 - use '%license' macro
 - update license to MulanPSLv2
 - Init Keentuned.
+
 
