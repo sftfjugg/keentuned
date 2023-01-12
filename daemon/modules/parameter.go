@@ -544,4 +544,57 @@ func replaceEqualSign(origin string) string {
 	return origin
 }
 
+// ConvertToSequentialDict ...
+func ConvertToSequentialDict(fileName string) ([]map[string]map[string]string, error) {
+	replacedStr, err := readConfFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+	var domain string
+	var seqDict []map[string]map[string]string
+	var paramDict = make(map[string]map[string]string)
+	var seqDomains []string
+	for _, originLine := range strings.Split(replacedStr, "\n") {
+		pureLine := strings.TrimSpace(replaceEqualSign(originLine))
+		if len(pureLine) == 0 {
+			continue
+		}
+
+		if strings.HasPrefix(pureLine, "#") {
+			continue
+		}
+
+		if strings.HasPrefix(pureLine, "[") && strings.HasSuffix(pureLine, "]") {
+			domain = strings.TrimSpace(strings.Trim(strings.Trim(pureLine, "["), "]"))
+			seqDomains = append(seqDomains, domain)
+			paramDict[domain] = make(map[string]string)
+			continue
+		}
+
+		paramSlice := strings.Split(pureLine, ":")
+		partLen := len(paramSlice)
+		switch {
+		case partLen <= 1:
+			continue
+		case partLen == 2:
+			name := paramSlice[0]
+			value := paramSlice[1]
+			paramDict[domain][name] = value
+		default:
+			newSlice := []string{paramSlice[0]}
+			newSlice = append(newSlice, strings.Join(paramSlice[1:], ":"))
+			name := newSlice[0]
+			value := newSlice[1]
+			paramDict[domain][name] = value
+		}
+	}
+
+	for _, domain := range seqDomains {
+		params := paramDict[domain]
+		seqDict = append(seqDict, map[string]map[string]string{domain: params})
+	}
+
+	return seqDict, nil
+}
+
 
