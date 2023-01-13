@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import logging
 import unittest
@@ -26,10 +27,19 @@ class TestTunedProfile(unittest.TestCase):
         self.assertEqual(status, 0)
         logger.info('the test_tuned_profile testcase finished')
 
+    def get_server_ip(self):
+        with open("common.py", "r", encoding='UTF-8') as f:
+            data = f.read()
+        target = re.search(r"target_ip=\"(.*)\"", data).group(1)
+        return target
+
     def get_cmd_res(self, cmd):
+        target_ip = self.get_server_ip()
+        if target_ip != "localhost":
+            cmd = "ssh {} '{}'".format(target_ip, cmd)
         self.status, self.out, _  = sysCommand(cmd)
         self.assertEqual(self.status, 0)
-        return self.out.strip("\n")
+        return self.out.strip('\n').replace("\t", " ")
 
     def set_tuned_profile(self, profile_name):
         cmd = 'keentune profile set {}'.format(profile_name)

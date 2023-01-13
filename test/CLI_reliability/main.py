@@ -66,7 +66,7 @@ def RunReliabilityCase():
     tuned_suite = unittest.TestSuite()
     tuned_suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTunedProfile))
 
-    suite = unittest.TestSuite([param_suite, profile_suite, sensitize_suite, combination_suite, multi_scenes, multi_target, multi_init, tuned_suite])
+    suite = unittest.TestSuite([param_suite, profile_suite, sensitize_suite, combination_suite, tuned_suite, multi_scenes, multi_target, multi_init])
     return suite
 
 
