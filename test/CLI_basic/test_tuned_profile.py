@@ -166,7 +166,7 @@ class TestTunedProfile(unittest.TestCase):
         cmd = 'keentune profile set spindown-disk.conf'
         self.status, self.out, _  = sysCommand(cmd)
         self.assertEqual(self.status, 0)
-        self.assertIn("[disk] 2 Succeeded", self.out)
+        self.assertIn("[sysctl] 5 Succeeded", self.out)
         self.assertIn("[env] 1 Succeeded", self.out)
 
     def test_throughput_performance_FUN(self):
