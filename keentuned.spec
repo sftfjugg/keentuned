@@ -1,5 +1,5 @@
 %define debug_package %{nil}
-%define anolis_release 1
+%define anolis_release 2
 
 Name:           keentuned
 Version:        2.0.1
@@ -63,9 +63,10 @@ rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 %{_prefix}/share/bash-completion/completions/keentune.bash
 
 %changelog
-* Wed Jan 11 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.1
+* Tue Jan 17 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.1-2
 - add: Update profile set for UI
 - fix: Reduce the delay of default setting
+- fix: Sync update keentune version in docs
 - fix: other known important bug fixes
 
 * Thu Dec 15 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-0

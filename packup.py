@@ -33,8 +33,8 @@ def warppingCheck():
         print("Get version: {}-{}".format(version_in_spec, release_in_spec))
         
         dateCheck(spec)
-        if release_in_spec != "0":
-            print("[Failed] release number must be zero!")
+        if int(release_in_spec) <= 0:
+            print("[Failed] release number must be greater than zero!")
             return 
 
         if re.search(" - {}".format(version_in_spec), spec):

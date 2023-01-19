@@ -6,7 +6,7 @@
 ```conf
 [keentuned]
 # Basic configuration of KeenTune-Daemon(KeenTuned).
-VERSION_NUM     = 2.0.0                     ; Record the version number of keentune
+VERSION_NUM     = 2.0.1                     ; Record the version number of keentune
 PORT            = 9871                      ; KeenTuned access port
 HEARTBEAT_TIME  = 30                        ; Heartbeat detection interval(unit: seconds), recommended value 30
 KEENTUNED_HOME  = /etc/keentune             ; KeenTuned  default configuration root location

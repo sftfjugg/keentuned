@@ -1,5 +1,5 @@
 %define debug_package %{nil}
-%define anolis_release 1
+%define anolis_release 2
 
 Name:           keentuned
 Version:        2.0.1
@@ -67,9 +67,10 @@ fi
 %{_prefix}/share/bash-completion/completions/keentune.bash
 
 %changelog
-* Wed Jan 11 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.1
+* Tue Jan 17 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.1-2
 - add: Update profile set for UI
 - fix: Reduce the delay of default setting
+- fix: Sync update keentune version in docs
 - fix: other known important bug fixes
 
 * Thu Dec 15 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-0
@@ -109,26 +110,30 @@ fi
 - Fix some issues
 - Add 'keentune version' command
 
-* Thu Mar 03 2022 Runzhe Wang <runzhe.wrz@alibaba-inc.com> - 1.1.0
-- remove parameter fs.nr_open
-- Add support for GP (in iTuned) in sensitizing algorithms
-- Add support for lasso in sensitizing algorithms
-- refactor tornado module: replace await by threadpool
-- lazy load domain in keentune-target
-- fix other bugs
-- Add baseline reading before init brain
-- Supporting multiple param json for tuning
-- Fix rollback failure
-- Clean empty dir when uninstall
-- Verify input arguments of command 'param tune'
-- Supporting of multiple target tuning
-- Fix bug which cause keentune hanging after command 'param stop'
-- Add verification of conflicting commands such as 'param dump', 'param delete' when a tuning job is runing.
-- Remove version limitation of tornado
-- Refactor sysctl domain to improve stability of parameter setting
-- Fix some user experience issues
+* Tue May 24 2022 Runzhe Wang <runzhe.wrz@alibaba-inc.com> - 1.1.3-4
+- Fix getting real IP failure during system initialization.
 
-* Wed Dec 15 2021 Runzhe Wang <runzhe.wrz@alibaba-inc.com> - 1.0.0
+* Mon May 23 2022 Runzhe Wang <runzhe.wrz@alibaba-inc.com - 1.1.3-3
+- modify servie type to idle
+
+* Fri May 20 2022 happy_orange <songnannan@linux.alibaba.com> - 1.1.3-2
+- rebuild
+
+* Thu May 19 2022 happy_orange <songnannan@linux.alibaba.com> - 1.1.3-1
+- update spec
+
+* Thu May 19 2022 Runzhe Wang <runzhe.wrz@alibaba-inc.com - 1.1.3
+- fix bug in service exit
+
+* Mon May 09 2022 Runzhe Wang <runzhe.wrz@alibaba-inc.com - 1.1.2
+- remove unsupported profile in anolis23
+- remove useless requires in .service file
+
+* Thu May 05 2022 happy_orange <songnannan@linux.alibaba.com> - 1.1.1
+- add makefile
+- update spec file
+
+* Wed Dec 15 2021 Runzhe Wang <runzhe.wrz@alibaba-inc.com - 1.0.0
 - add tpce tpch benchmark files
 - fix bug: can not running in alinux2 and centos7
 - change modify codeup address to gitee
@@ -140,3 +145,5 @@ fi
 - use '%license' macro
 - update license to MulanPSLv2
 - Init Keentuned.
+
+
