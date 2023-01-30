@@ -30,6 +30,16 @@ class TestParamTune(unittest.TestCase):
         deleteDependentData("param1")
         logger.info('the test_param_tune testcase finished')
 
+    def check_result(self):
+        cmd = 'keentune param jobs'
+        self.status, self.out, _  = sysCommand(cmd)
+        self.assertEqual(self.status, 0)
+        self.assertIn("param1\ttpe\t10\tfinish", self.out)
+
+        path = "/var/keentune/tuning_workspace/param1/param1_group1_best.json"
+        res = os.path.exists(path)
+        self.assertTrue(res)
+
     def test_param_tune_FUN(self):
         cmd = 'keentune param tune -i 10 --job param1'
         self.status, self.out, _  = sysCommand(cmd)
@@ -48,3 +58,5 @@ class TestParamTune(unittest.TestCase):
                      "Step5", "Step6", "[BEST] Tuning improvement"]
         result = all([word in res_data for word in word_list])
         self.assertTrue(result)
+
+        self.check_result()

@@ -37,7 +37,11 @@ class TestParamDelete(unittest.TestCase):
         self.assertEqual(self.status, 0)
         self.assertTrue(self.out.__contains__('delete successfully'))
 
-        cmd = "keentune param list"
+        cmd = "keentune param jobs"
         self.status, self.out, _ = sysCommand(cmd)
         self.assertEqual(self.status, 0)
         self.assertFalse(self.out.__contains__('param1'))
+
+        path = "/var/keentune/tuning_workspace/param1"
+        res = os.path.exists(path)
+        self.assertFalse(res)

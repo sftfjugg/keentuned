@@ -12,6 +12,7 @@ from common import checkServerStatus
 from common import deleteDependentData
 from common import runParamTune
 from common import runParamDump
+from common import runProfileSet
 
 class TestProfileDelete(unittest.TestCase):
     @classmethod
@@ -62,3 +63,17 @@ class TestProfileDelete(unittest.TestCase):
         self.status, self.out, _ = sysCommand(cmd)
         self.assertEqual(self.status, 1)
         self.assertTrue(self.out.__contains__('Incomplete or Unmatched command'))
+
+    def test_profile_delete_RBT_before_rollback(self):
+        self.status = runProfileSet()
+        self.assertEqual(self.status, 0)
+        cmd = "echo y | keentune profile delete --name param1_group1.conf"
+        self.status, self.out, _ = sysCommand(cmd)
+        self.assertEqual(self.status, 1)
+        self.assertTrue(self.out.__contains__('param1_group1.conf is active profile'))
+
+        self.status = sysCommand("keentune profile rollback")[0]
+        self.assertEqual(self.status, 0)
+        self.status, self.out, _ = sysCommand(cmd)
+        self.assertEqual(self.status, 0)
+        self.assertTrue(self.out.__contains__('delete successfully'))

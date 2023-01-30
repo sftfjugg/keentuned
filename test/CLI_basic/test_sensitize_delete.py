@@ -47,3 +47,7 @@ class TestSensitizeDelete(unittest.TestCase):
         self.status, self.out, _ = sysCommand(cmd)
         self.assertEqual(self.status, 0)
         self.assertFalse(self.out.__contains__('param1'))
+
+        path = "/var/keentune/sensitize_workspace/param1"
+        res = os.path.exists(path)
+        self.assertFalse(res)

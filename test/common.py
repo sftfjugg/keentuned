@@ -99,7 +99,7 @@ def runParamDump(name):
 
 
 def runProfileSet():
-    cmd = 'keentune profile set --group1 param1_group1.conf'
+    cmd = 'keentune profile set param1_group1.conf'
     sysCommand(cmd)
     cmd = 'keentune profile list'
     _, output, _ = sysCommand(cmd)

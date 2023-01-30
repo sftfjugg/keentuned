@@ -98,7 +98,6 @@ class TestTunedProfile(unittest.TestCase):
         self.assertEqual(res, "10")
 
     def test_mssql_RBT(self):
-        cmd = 'keentune profile set mssql.conf'
         self.set_tuned_profile("mssql.conf")
         res = self.get_cmd_res("cat /proc/sys/kernel/sched_latency_ns")
         self.assertEqual(res, "60000000")
