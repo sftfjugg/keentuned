@@ -3,7 +3,6 @@ import sys
 import unittest
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
-os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 from CLI_basic.test_help import TestHelp
 from CLI_basic.test_init import TestInit
@@ -59,5 +58,7 @@ def RunBasicCase():
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(RunBasicCase())
+

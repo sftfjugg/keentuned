@@ -3,7 +3,6 @@ import sys
 import unittest
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
-os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 from CLI_reliability.test_param_tune import TestParamTune
 from CLI_reliability.test_param_dump import TestParamDump
@@ -71,5 +70,7 @@ def RunReliabilityCase():
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(RunReliabilityCase())
+
