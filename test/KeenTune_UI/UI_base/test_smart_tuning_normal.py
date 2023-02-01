@@ -53,7 +53,7 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
                 self.wait.until(EC.element_to_be_clickable((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[12]/div'))).click()
                 self.wait.until(EC.element_to_be_clickable((By.XPATH,'//ul[@class="ant-dropdown-menu ant-dropdown-menu-root ant-dropdown-menu-vertical ant-dropdown-menu-light"]/li[6]/span[1]'))).click()
                 self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-modal-confirm-body-wrapper"]//button[@class="ant-btn ant-btn-primary"]'))).click()
-                sleep(1)
+                sleep(5)
             else:
                 break
         self.driver.quit()
@@ -81,10 +81,10 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
                 Total_Time = self.wait.until(EC.visibility_of_element_located((By.XPATH, '//tbody[@class="ant-table-tbody"]/tr[1]/td[11]'))).text
                 if Total_Time != "-":
                     break
-                elif j == 8 :
-                    self.assertNotIn("-",Total_Time)
+                elif j == 8:
+                    self.assertNotIn("-", Total_Time)
         name = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[2]'))).text
-        self.assertIn("auto_test_"+Algorithm_list[-1],name)
+        self.assertIn("auto_test_"+Algorithm_list[-1], name)
 
     def test_createjob02(self):
         Algorithm_list = ["TPE","HORD","Random"]
@@ -138,10 +138,10 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
                 Total_Time = self.wait.until(EC.visibility_of_element_located((By.XPATH, '//tbody[@class="ant-table-tbody"]/tr[1]/td[11]'))).text
                 if Total_Time != "-":
                     break
-                elif j == 8 :
+                elif j == 8:
                     self.assertNotIn("-",Total_Time)
         name = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[2]'))).text
-        self.assertIn("auto_test2_"+Algorithm_list[-1],name)
+        self.assertIn("auto_test2_"+Algorithm_list[-1], name)
 
     def test_detail(self):
         #获取任务页面参数
@@ -161,20 +161,22 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
         detail_Start_Time = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="ant-row tag_row___Mi3-g"]/div[7]//div[@class="ellipsis___2bpK7"]'))).text
         detail_End_Time = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="ant-row tag_row___Mi3-g"]/div[8]//div[@class="ellipsis___2bpK7"]'))).text
         self.driver.back()
-        self.assertIn(Job_Name,Name)
-        self.assertIn(detail_Ststus,Status)
-        self.assertIn(detail_Algorithm,Algorithm)
-        self.assertIn(detail_Iteration,Iteration)
-        self.assertIn(detail_Start_Time,Start_Time)
-        self.assertIn(detail_End_Time,End_Time)
+        self.assertIn(Job_Name, Name)
+        self.assertIn(detail_Ststus, Status)
+        self.assertIn(detail_Algorithm, Algorithm)
+        self.assertIn(detail_Iteration, Iteration)
+        self.assertIn(detail_Start_Time, Start_Time)
+        self.assertIn(detail_End_Time, End_Time)
 
     def test_log(self):
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[12]/div'))).click()
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//ul[@class="ant-dropdown-menu ant-dropdown-menu-root ant-dropdown-menu-vertical ant-dropdown-menu-light"]/li[2]/span[1]'))).click()
-        log_checkfile = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="CodeMirror-code"]')))
-        self.assertIn("[BEST] Benchmark result:", log_checkfile.text)
-        self.assertIn("[[BEST] Tuning improvement:", log_checkfile.text)
+        log_checkfile_1 = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="CodeMirror-code"]/div[3]/pre/span')))
+        log_checkfile_2 = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="CodeMirror-code"]/div[9]/pre/span/span')))
+        self.assertIn("Run benchmark as baseline:", log_checkfile_1.text)
+        self.assertIn("10", log_checkfile_2.text)
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-modal-footer"]/button[@class="ant-btn ant-btn-primary"]'))).click()
+        sleep(5)
 
     def test_rollback(self):
         self.wait.until(
@@ -182,7 +184,8 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
         self.wait.until(EC.element_to_be_clickable((By.XPATH,
                                                     '//ul[@class="ant-dropdown-menu ant-dropdown-menu-root ant-dropdown-menu-vertical ant-dropdown-menu-light"]/li[3]/span[1]'))).click()
         alert_text = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@style="text-align: left;"]/pre'))).text
-        self.assertIn('ok',alert_text)
+        self.assertIn('ok', alert_text)
+        sleep(5)
 
     def test_dump(self):
         self.wait.until(
@@ -199,14 +202,14 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
         self.driver.find_element(By.XPATH, '//div[@class="ant-pro-top-nav-header-logo"]//img').click()
         sleep(5)
         self.driver.find_element(By.XPATH, '//div[@class="list___y_nmN"]/div[1]//img').click()
-        names = self.wait.until(EC.visibility_of_all_elements_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr')))
-        name_list = []
-        for i in range(1,len(names)+1):
-            name_list.append(self.wait.until(EC.visibility_of_element_located((By.XPATH,f'//tbody[@class="ant-table-tbody"]/tr[{i}]/td/div/span'))).text)
-        self.assertIn(name,name_list)
+        sleep(1)
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[1]//span'))).click()
+        name_profile = self.driver.find_element(By.XPATH,'//tr[@data-row-key="1-1"]//td[1]').text
+        self.assertEqual(name, name_profile)
         self.driver.find_element(By.XPATH, '//div[@class="ant-pro-top-nav-header-logo"]//img').click()
-        sleep(5)
+        sleep(3)
         self.driver.find_element(By.XPATH, '//div[@class="list___y_nmN"]/div[2]//img').click()
+        sleep(3)
 
     def test_rerun(self):
         #点击重跑按钮
@@ -215,7 +218,7 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
         rerun_Name = self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).get_attribute("value")
         rerun_Algorithm = self.wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="ant-form-item-control-input"]//div[@class="ant-select-selector"]/span[@class="ant-select-selection-item"]'))).text
         rerun_Iteration = self.wait.until(EC.visibility_of_element_located((By.ID, "iteration"))).get_attribute("value")
-        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-modal-footer"]//button[@class="ant-btn ant-btn-primary"]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-modal-footer"]//button[@class="ant-btn ant-btn-primary"]/span'))).click()
         for j in range(1,9):
             sleep(35)
             self.driver.refresh()
@@ -223,22 +226,23 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
             if Total_Time != "-":
                 break
             elif j == 8 :
-                self.assertNotIn("-",Total_Time)
+                self.assertNotIn("-", Total_Time)
         web_Name = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[2]'))).text
         web_Algorithm = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[3]'))).text
         web_Iteration = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[5]'))).text
-        self.assertEqual(rerun_Name,web_Name)
-        self.assertEqual(rerun_Algorithm,web_Algorithm)
-        self.assertEqual(rerun_Iteration,web_Iteration)
+        self.assertEqual(rerun_Name, web_Name)
+        self.assertEqual(rerun_Algorithm, web_Algorithm)
+        self.assertEqual(rerun_Iteration, web_Iteration)
+        sleep(5)
 
     def test_delete(self):
         first_name = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[2]'))).text
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[12]/div'))).click()
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//ul[@class="ant-dropdown-menu ant-dropdown-menu-root ant-dropdown-menu-vertical ant-dropdown-menu-light"]/li[6]/span[1]'))).click()
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-modal-confirm-body-wrapper"]//button[@class="ant-btn ant-btn-primary"]'))).click()
-        sleep(3)
+        sleep(5)
         new_first_name = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[2]'))).text
-        self.assertNotEqual(first_name,new_first_name)
+        self.assertNotEqual(first_name, new_first_name)
 
     def test_refresh(self):
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-space ant-space-horizontal ant-space-align-center ant-pro-table-list-toolbar-setting-items"]//span[@class="anticon anticon-reload"]'))).click()
@@ -252,15 +256,18 @@ class TestKeenTuneUiSmartNormal(unittest.TestCase):
         self.assertNotIn("Name", ele.text)
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//a[@class="ant-pro-table-column-setting-action-rest-button"]'))).click()
         self.assertIn("Name", ele.text)
+        sleep(1)
 
     def test_sorting(self):
         self.wait.until(EC.element_to_be_clickable((By.XPATH,'//thead[@class="ant-table-thead"]//th[9]'))).click()
-        times=self.wait.until(EC.visibility_of_all_elements_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr/td[9]/span')))
+        times = self.wait.until(EC.visibility_of_all_elements_located((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr/td[9]/span')))
         web_time_list = []
         for time in times:
             web_time_list.append(time.text)
         sort_time = sorted(web_time_list)
-        self.assertEqual(web_time_list,sort_time)
+        self.assertEqual(web_time_list, sort_time)
+        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//thead[@class="ant-table-thead"]//th[9]'))).click()
+        sleep(5)
 
     def test_language_switch(self):
         lan_dict = {"en": "Auto-Tuning Job List", "cn": "智能参数调优任务记录"}
