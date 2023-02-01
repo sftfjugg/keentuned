@@ -40,11 +40,12 @@ def RunBasicCase():
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_create_job"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_create_job2"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_detail"))
+    sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_log"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_rerun"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_delete"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_refresh"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_setting"))
-    # sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_sorting"))
+    sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_sorting"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_language_switch"))
 
     suite = unittest.TestSuite([profile_suite, param_suite, sensi_suite])

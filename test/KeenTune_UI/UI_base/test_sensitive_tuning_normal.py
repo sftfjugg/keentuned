@@ -204,7 +204,14 @@ class TestKeenTuneUiSensitiveNormal(unittest.TestCase):
         self.assertEqual(Total_time,detail_Total_time)
 
     def test_log(self):
-        pass
+        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//tbody[@class="ant-table-tbody"]/tr[1]/td[10]/div'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-dropdown ant-dropdown-placement-bottomLeft "]/ul/li[2]/span[1]'))).click()
+        log_checkfile_1 = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="CodeMirror-code"]/div[3]/pre/span')))
+        log_checkfile_2 = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//div[@class="CodeMirror-code"]/div[4]/pre/span')))
+        self.assertIn("Initiate sensitization success.", log_checkfile_1.text)
+        self.assertIn("identification results successfully", log_checkfile_2.text)
+        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-modal-footer"]/button[@class="ant-btn ant-btn-primary"]'))).click()
+        sleep(2)
 
     def test_rerun(self):
         self.wait.until(
@@ -267,7 +274,8 @@ class TestKeenTuneUiSensitiveNormal(unittest.TestCase):
         for time in times:
             web_time_list.append(time.text)
         sort_time = sorted(web_time_list)
-        self.assertEqual(web_time_list,sort_time)
+        self.assertEqual(web_time_list, sort_time)
+        self.wait.until(EC.element_to_be_clickable((By.XPATH,'//thead[@class="ant-table-thead"]//th[7]'))).click()
 
     def test_language_switch(self):
         lan_dict = {"en": "Sensitivity Identification Job List", "cn": "敏感参数识别任务记录"}
