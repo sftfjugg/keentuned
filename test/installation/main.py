@@ -3,12 +3,11 @@ import sys
 import unittest
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
+os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 from common import deleteDependentData
 from installation.test_install_source import TestInstallSource
 from installation.test_install_yum import TestInstallYum
-
-os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 
 def RunLongStableCase():

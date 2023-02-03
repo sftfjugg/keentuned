@@ -69,9 +69,15 @@ class TestLongStability(unittest.TestCase):
             self.assertEqual(self.status, 0)
             self.assertTrue(self.out.__contains__('Rollback all successfully') or self.out.__contains__('All Targets No Need to Rollback'))
 
-            result = runParamTune(self.job_name, iteration=500)
-            self.assertEqual(result, 0)
-            time.sleep(5)
+            for tune_algorithm in ("tpe", "hord", "random", "bgcs", "lamcts"):
+                cmd = "echo y | keentune param delete --job {}".format(self.job_name)
+                sysCommand(cmd)
+
+                sed_cmd = 'sed -i "s/AUTO_TUNING_ALGORITHM\(.*\)=.*/AUTO_TUNING_ALGORITHM\\1= {}/" /etc/keentune/conf/keentuned.conf'.format(tune_algorithm)
+                sysCommand(sed_cmd)
+                result = runParamTune(self.job_name, iteration=500)
+                self.assertEqual(result, 0)
+                time.sleep(5)
             
             for algorithm in ('lasso', 'univariate', 'shap', 'explain', 'gp'):
                 sed_cmd = 'sed -i "s/SENSITIZE_ALGORITHM\(.*\)=.*/SENSITIZE_ALGORITHM\1= {}/" /etc/keentune/conf/keentuned.conf'.format(algorithm)
