@@ -69,7 +69,7 @@ class TestLongStability(unittest.TestCase):
             self.assertEqual(self.status, 0)
             self.assertTrue(self.out.__contains__('Rollback all successfully') or self.out.__contains__('All Targets No Need to Rollback'))
             
-            for tune_algorithm in ('bgcs', 'lamcts', 'tpe'):
+            for tune_algorithm in ("tpe", "hord", "random"):
                 cmd = "echo y | keentune param delete --job {}".format(self.job_name)
                 sysCommand(cmd)
 
