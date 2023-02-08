@@ -1,7 +1,7 @@
 {
     "benchmark": [
       {
-        "benchmark_cmd": "python3 {remote_script_path} {keentuned_ip}",
+        "benchmark_cmd": "python3 {remote_script_path} {target_ip}",
         "local_script_path": "benchmark/iperf/iperf.py",
         "items": {
           "Sender_Bandwidth": {
@@ -33,3 +33,4 @@
       }
     ]
 }
+

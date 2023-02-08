@@ -1,6 +1,4 @@
-#!/usr/bin/python3
 # -*- coding: utf-8 -*-
-import paramiko
 import re
 import sys
 import subprocess
@@ -14,20 +12,20 @@ sysbench benchmark
 logger = logging.getLogger(__name__)
 
 # const
-MYSQL_PORT=3306
-MYSQL_USER='sysbench'
+MYSQL_PORT = 3306
+MYSQL_USER = 'sysbench'
 MYSQL_PASSWORD = "password"
 DATABASE_NAME = "sysbenchdb"
 REPORT_INTERVAL = 0
-TIME=20
+TIME = 20
 PORT = 22
-TEST_TYPE="/usr/local/share/sysbench/oltp_read_write.lua"
+TEST_TYPE = "oltp_read_write"
 
 DEFAULT = "--thread-stack-size=32768 --table-size=100000 --tables=3 --threads=1"
 
-script_file="setupmysql.sh"
+script_file = "setupmysql.sh"
 
-mysqlshell="""#!/bin/sh
+mysqlshell = """#!/bin/sh
 db_name=sysbenchdb
 db_password=password
 db_port=3306
@@ -86,7 +84,7 @@ class Benchmark:
             threads (int, optional): The numbers of thread. Defaults to 40.
             times (int, optional): The time. Defaults to 10.
         """
-        CMD_LOGIN = '/usr/local/bin/sysbench {} --mysql-host={} --mysql-port={} --mysql-user={} --mysql-password={} --db-driver=mysql --mysql-db={} --report-interval={} --time={}'.format(TEST_TYPE, str(url), MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, DATABASE_NAME, REPORT_INTERVAL, TIME)
+        CMD_LOGIN = 'sysbench {} --mysql-host={} --mysql-port={} --mysql-user={} --mysql-password={} --db-driver=mysql --mysql-db={} --report-interval={} --time={}'.format(TEST_TYPE, str(url), MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, DATABASE_NAME, REPORT_INTERVAL, TIME)
         CMD = ' '.join((CMD_LOGIN, DEFAULT))
 
         self.CMD_RUN = ' '.join((CMD,'run'))
@@ -183,5 +181,6 @@ if __name__ == "__main__":
         exit(1)
     bench = Benchmark(sys.argv[1])
     suc, res = bench.run()
+
 
 

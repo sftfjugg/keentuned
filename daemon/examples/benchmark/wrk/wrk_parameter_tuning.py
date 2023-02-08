@@ -27,7 +27,7 @@ class Benchmark:
             duration (int, optional): Duration of test.
         """
         # Modify the test command based on the actual scenario
-        self.CMD = "wrk {} --duration {} --latency https://{}:443/0kb.bin ".format(default, duration, url)
+        self.CMD = "wrk {} --duration {} --latency http://{}".format(default, duration, url)
 
     def __transfMeasurement(self,value,measurement):
         if measurement == '':
@@ -134,5 +134,6 @@ if __name__ == "__main__":
         exit(1)
     bench = Benchmark(sys.argv[1])
     suc, res = bench.run()
+
 
 
