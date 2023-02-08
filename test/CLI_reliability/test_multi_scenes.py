@@ -118,6 +118,18 @@ class TestMultiScenes(unittest.TestCase):
         self.reset_keentuned("param", "sysctl.json")
         self.reset_keentuned("bench", "wrk_http_long.json")
 
+    def set_yitian_profile(self, profile_name):
+        cmd = 'keentune profile set {}'.format(profile_name)
+        self.status, self.out, _  = sysCommand(cmd)
+        self.assertEqual(self.status, 0)
+
+    def get_cmd_res(self, cmd):
+        if self.target != "localhost":
+            cmd = "ssh {} '{}'".format(self.target, cmd)
+        self.status, self.out, _  = sysCommand(cmd)
+        self.assertEqual(self.status, 0)
+        self.out = self.out.strip('\n').replace("\t", " ")
+
     def test_param_domain_FUN_sysctl(self):
         self.reset_keentuned("param", "sysctl.json")
         self.run_param_tune()
@@ -151,6 +163,30 @@ class TestMultiScenes(unittest.TestCase):
         self.reset_keentuned("param", "wrk.json")
         self.reset_keentuned("bench", "wrk_parameter_tuning.json")
         self.reset_defeat_conf()
+
+    def test_profile_yitian_FUN_nginx(self):
+        self.set_yitian_profile("nginx.conf")
+        self.assertIn("[limits] 4 Succeeded", self.out)
+        self.get_cmd_res("cat /proc/sys/fs/file-max")
+        self.assertEqual(self.out, "10485760")
+
+    def test_profile_yitian_FUN_mysql(self):
+        self.set_yitian_profile("mysql.conf")
+        self.assertIn("[net] 3 Succeeded", self.out)
+        self.get_cmd_res("cat /sys/class/net/eth0/queues/tx-0/xps_cpus")
+        self.assertNotEqual(int(self.out), 0)
+
+    def test_profile_yitian_FUN_pgsql(self):
+        self.set_yitian_profile("pgsql.conf")
+        self.assertIn("[kernel_mem] 1 Succeeded", self.out)
+        self.get_cmd_res("cat /sys/kernel/mm/transparent_hugepage/hugetext_enabled")
+        self.assertEqual(self.out, "1")
+
+    def test_profile_yitian_FUN_redis(self):
+        self.set_yitian_profile("redis.conf")
+        self.assertIn("[net] 3 Succeeded", self.out)
+        self.get_cmd_res("cat /sys/class/net/eth0/queues/tx-0/xps_cpus")
+        self.assertNotEqual(int(self.out), 0)
 
     def test_param_tune_FUN_tpe(self):
         self.restart_brain_server("tpe", "tune")
