@@ -20,15 +20,28 @@ logger = logging.getLogger(__name__)
 class TestMultiScenes(unittest.TestCase):
     @classmethod
     def setUpClass(self) -> None:
-        self.brain = self.get_server_ip()
-        if self.brain != "localhost":
-            status = sysCommand("scp conf/restart_brain.sh {}:/opt".format(self.brain))[0]
+        self.target = self.get_server_ip()
+        if self.target != "localhost":
+            status = sysCommand("scp conf/init_mysql.sh {}:/opt".format(self.target))[0]
+            assert status == 0
+            status = sysCommand("ssh {} 'sh /opt/init_mysql.sh'".format(self.target))[0]
+            assert status == 0
+            status = sysCommand("ssh {} 'nohup iperf3 -s > /dev/null 2>&1 &'".format(self.target))[0]
+            assert status == 0
+        else:
+            status = sysCommand("nohup iperf3 -s > /dev/null 2>&1 &")[0]
             assert status == 0
         
     @classmethod
     def tearDownClass(self) -> None:
-        if self.brain != "localhost":
-            status = sysCommand("ssh {} 'rm -rf /opt/restart_brain.sh'".format(self.brain))[0]
+        cmd = "ps -ef|grep -E 'iperf3 -s'|grep -v grep|awk '{print $2}'| xargs -I {} kill -9 {}"
+        if self.target != "localhost":
+            status = sysCommand("ssh {} 'rm -rf /opt/init_mysql.sh'".format(self.target))[0]
+            assert status == 0
+            status = sysCommand("ssh {} '{}'".format(self.target, cmd))[0]
+            assert status == 0
+        else:
+            status = sysCommand(cmd)[0]
             assert status == 0
 
     def setUp(self) -> None:
@@ -50,8 +63,8 @@ class TestMultiScenes(unittest.TestCase):
     def get_server_ip():
         with open("common.py", "r", encoding='UTF-8') as f:
             data = f.read()
-        brain = re.search(r"brain_ip=\"(.*)\"", data).group(1)
-        return brain
+        target = re.search(r"target_ip=\"(.*)\"", data).group(1)
+        return target
 
     def check_param_tune_job(self, name):
         cmd = 'keentune param jobs'
@@ -93,14 +106,51 @@ class TestMultiScenes(unittest.TestCase):
         self.assertEqual(self.status, 0)
         self.assertIn("restart keentuned server successfully!", self.out)
 
-    def test_param_tune_FUN_nginx(self):
-        self.reset_keentuned("param", "nginx_conf.json")
+    def run_param_tune(self):
         cmd = 'keentune param tune -i 10 --job param1'
         path = getTaskLogPath(cmd)
         result = getTuneTaskResult(path)
         self.assertTrue(result)
         self.check_param_tune_job("param1")
+
+    def reset_defeat_conf(self):
+        self.run_param_tune()
         self.reset_keentuned("param", "sysctl.json")
+        self.reset_keentuned("bench", "wrk_http_long.json")
+
+    def test_param_domain_FUN_sysctl(self):
+        self.reset_keentuned("param", "sysctl.json")
+        self.run_param_tune()
+    
+    def test_param_domain_FUN_nginx(self):
+        self.reset_keentuned("param", "nginx_conf.json")
+        self.run_param_tune()
+        self.reset_keentuned("param", "sysctl.json")
+
+    def test_param_domain_FUN_mysql(self):
+        self.reset_keentuned("param", "my_cnf.json")
+        self.reset_keentuned("bench", "sysbench_mysql_read_write.json")
+        self.reset_defeat_conf()
+
+    def test_param_domain_FUN_sysbench(self):
+        self.reset_keentuned("param", "sysbench.json")
+        self.reset_keentuned("bench", "sysbench_mysql_read_write.json")
+        self.reset_defeat_conf()
+
+    def test_param_domain_FUN_iperf(self):
+        self.reset_keentuned("param", "iperf.json")
+        self.reset_keentuned("bench", "iperf_bench.json")
+        self.reset_defeat_conf()
+
+    def test_param_domain_FUN_fio(self):
+        self.reset_keentuned("param", "fio.json")
+        self.reset_keentuned("bench", "bench_fio_disk_IOPS.json")
+        self.reset_defeat_conf()
+
+    def test_param_domain_FUN_wrk(self):
+        self.reset_keentuned("param", "wrk.json")
+        self.reset_keentuned("bench", "wrk_parameter_tuning.json")
+        self.reset_defeat_conf()
 
     def test_param_tune_FUN_tpe(self):
         self.restart_brain_server("tpe", "tune")
@@ -156,3 +206,4 @@ class TestMultiScenes(unittest.TestCase):
         status = runParamTune("param1")
         self.assertEqual(status, 0)
         self.run_sensitize_train("param1")
+
