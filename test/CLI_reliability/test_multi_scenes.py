@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 class TestMultiScenes(unittest.TestCase):
     @classmethod
     def setUpClass(self) -> None:
-        self.target = self.get_server_ip()
+        self.target, self.bench = self.get_server_ip()
+        self.keentune_path = "/etc/keentune/conf/keentuned.conf"
         if self.target != "localhost":
             status = sysCommand("scp conf/init_mysql.sh {}:/opt".format(self.target))[0]
             assert status == 0
@@ -64,7 +65,8 @@ class TestMultiScenes(unittest.TestCase):
         with open("common.py", "r", encoding='UTF-8') as f:
             data = f.read()
         target = re.search(r"target_ip=\"(.*)\"", data).group(1)
-        return target
+        bench = re.search(r"bench_ip=\"(.*)\"", data).group(1)
+        return target, bench
 
     def check_param_tune_job(self, name):
         cmd = 'keentune param jobs'
@@ -130,6 +132,10 @@ class TestMultiScenes(unittest.TestCase):
         self.assertEqual(self.status, 0)
         self.out = self.out.strip('\n').replace("\t", " ")
 
+    def change_target_ip(self, server):
+        cmd = r'sed -i "s/TARGET_IP.*=.*/TARGET_IP = {}/g" {}'.format(server, self.keentune_path)
+        self.assertEqual(sysCommand(cmd)[0], 0)
+
     def test_param_domain_FUN_sysctl(self):
         self.reset_keentuned("param", "sysctl.json")
         self.run_param_tune()
@@ -145,24 +151,34 @@ class TestMultiScenes(unittest.TestCase):
         self.reset_defeat_conf()
 
     def test_param_domain_FUN_sysbench(self):
+        self.change_target_ip(self.bench)
         self.reset_keentuned("param", "sysbench.json")
         self.reset_keentuned("bench", "sysbench_mysql_read_write.json")
         self.reset_defeat_conf()
+        self.change_target_ip(self.target)
 
     def test_param_domain_FUN_iperf(self):
+        self.change_target_ip(self.bench)
+        cmd = r'sed -i "s/\(.*\)8388608\(.*\)/\1300000\2/" /etc/keentune/parameter/iperf.json'
+        self.assertEqual(sysCommand(cmd)[0], 0)
         self.reset_keentuned("param", "iperf.json")
         self.reset_keentuned("bench", "iperf_bench.json")
         self.reset_defeat_conf()
+        self.change_target_ip(self.target)
 
     def test_param_domain_FUN_fio(self):
+        self.change_target_ip(self.bench)
         self.reset_keentuned("param", "fio.json")
         self.reset_keentuned("bench", "bench_fio_disk_IOPS.json")
         self.reset_defeat_conf()
+        self.change_target_ip(self.target)
 
     def test_param_domain_FUN_wrk(self):
+        self.change_target_ip(self.bench)
         self.reset_keentuned("param", "wrk.json")
         self.reset_keentuned("bench", "wrk_parameter_tuning.json")
         self.reset_defeat_conf()
+        self.change_target_ip(self.target)
 
     def test_profile_yitian_FUN_nginx(self):
         self.set_yitian_profile("nginx.conf")
@@ -178,9 +194,9 @@ class TestMultiScenes(unittest.TestCase):
 
     def test_profile_yitian_FUN_pgsql(self):
         self.set_yitian_profile("pgsql.conf")
-        self.assertIn("[kernel_mem] 1 Succeeded", self.out)
-        self.get_cmd_res("cat /sys/kernel/mm/transparent_hugepage/hugetext_enabled")
-        self.assertEqual(self.out, "1")
+        self.assertIn("[sysctl] 3 Succeeded", self.out)
+        self.get_cmd_res("sysctl -n vm.dirty_ratio")
+        self.assertEqual(self.out, "40")
 
     def test_profile_yitian_FUN_redis(self):
         self.set_yitian_profile("redis.conf")

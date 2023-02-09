@@ -29,15 +29,15 @@ EOF
 
 #check mysql version
 mysql_version=$(mysql -V|awk '{print $3}')
-if [[ $mysql_version > \"8.0\" ]];then
+if [[ $mysql_version > "8.0" ]];then
     mysqld --initialize --user=mysql --datadir=/var/lib/mysql
     systemctl restart mysqld
     raw_pswd=$(cat $mysql_log | grep 'temporary password' | tail -n 1 | awk '{print $NF}')
-    set_pswd=\"ALTER USER 'root'@'localhost' IDENTIFIED BY '${db_password}';\"
-    echo \"$set_pswd\"
-    mysql -uroot -p\"${raw_pswd}\" -Dmysql --connect-expired-password -e \"$set_pswd\"
+    set_pswd="ALTER USER 'root'@'localhost' IDENTIFIED BY '${db_password}';"
+    echo "$set_pswd"
+    mysql -uroot -p"${raw_pswd}" -Dmysql --connect-expired-password -e "$set_pswd"
 else
-    echo \"mysql version error,check yum source!\"
+    echo "mysql version error,check yum source!"
     exit 1
 fi
-mysql -uroot -p\"${db_password}\" -Dmysql < $tmp_sql
+mysql -uroot -p"${db_password}" -Dmysql < $tmp_sql
