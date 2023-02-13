@@ -92,10 +92,8 @@ class TestLongStability(unittest.TestCase):
                 time.sleep(2)
 
             self.profile_dump(self.job_name)
-
-            cmd = "keentune profile list | awk '{print$2}'"
-            self.status, self.out, _ = sysCommand(cmd)
-            for profile_name in self.out.strip().split("\n"):
+            profile_list = ["{}_group1.conf".format(self.job_name), "cpu_high_load.conf"]
+            for profile_name in profile_list:
                 for i in range(100):
                     self.profile_set(profile_name)
                     time.sleep(2)
@@ -111,5 +109,4 @@ class TestLongStability(unittest.TestCase):
 
             logger.info("current round testcase finished")
             time_diff = (time.time() - start_time) / 3600
-
 

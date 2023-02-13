@@ -117,6 +117,7 @@ class TestMultiScenes(unittest.TestCase):
 
     def reset_defeat_conf(self):
         self.run_param_tune()
+        time.sleep(60)
         self.reset_keentuned("param", "sysctl.json")
         self.reset_keentuned("bench", "wrk_http_long.json")
 
@@ -173,7 +174,7 @@ class TestMultiScenes(unittest.TestCase):
         self.reset_defeat_conf()
         self.change_target_ip(self.target)
 
-    def test_param_domain_FUN_wrk(self):
+    def test_param_domain_FUN_0_wrk(self):
         self.change_target_ip(self.bench)
         self.reset_keentuned("param", "wrk.json")
         self.reset_keentuned("bench", "wrk_parameter_tuning.json")
@@ -258,4 +259,5 @@ class TestMultiScenes(unittest.TestCase):
         status = runParamTune("param1")
         self.assertEqual(status, 0)
         self.run_sensitize_train("param1")
+
 
