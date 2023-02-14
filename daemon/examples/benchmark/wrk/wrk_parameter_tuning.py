@@ -95,6 +95,7 @@ class Benchmark:
                 or not re.search(pattern_Requests_sec,self.out) \
                 or not re.search(pattern_Transfer_sec,self.out):
                 logger.error("can not parse output: {}".format(self.out))
+                print(self.error)
                 return False, []
 
             _latency_90 = float(re.search(pattern_latency_90,self.out).group(1))
@@ -124,6 +125,7 @@ class Benchmark:
 
         else:
             logger.error(self.error)
+            print(self.error)
             return False, []
 
 
