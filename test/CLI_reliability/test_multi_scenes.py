@@ -115,9 +115,9 @@ class TestMultiScenes(unittest.TestCase):
         self.assertTrue(result)
         self.check_param_tune_job("param1")
 
-    def reset_defeat_conf(self):
+    def reset_default_conf(self):
         self.run_param_tune()
-        time.sleep(60)
+        time.sleep(10)
         self.reset_keentuned("param", "sysctl.json")
         self.reset_keentuned("bench", "wrk_http_long.json")
 
@@ -149,13 +149,13 @@ class TestMultiScenes(unittest.TestCase):
     def test_param_domain_FUN_mysql(self):
         self.reset_keentuned("param", "my_cnf.json")
         self.reset_keentuned("bench", "sysbench_mysql_read_write.json")
-        self.reset_defeat_conf()
+        self.reset_default_conf()
 
     def test_param_domain_FUN_sysbench(self):
         self.change_target_ip(self.bench)
         self.reset_keentuned("param", "sysbench.json")
         self.reset_keentuned("bench", "sysbench_mysql_read_write.json")
-        self.reset_defeat_conf()
+        self.reset_default_conf()
         self.change_target_ip(self.target)
 
     def test_param_domain_FUN_iperf(self):
@@ -164,21 +164,26 @@ class TestMultiScenes(unittest.TestCase):
         self.assertEqual(sysCommand(cmd)[0], 0)
         self.reset_keentuned("param", "iperf.json")
         self.reset_keentuned("bench", "iperf_bench.json")
-        self.reset_defeat_conf()
+        self.reset_default_conf()
         self.change_target_ip(self.target)
 
     def test_param_domain_FUN_fio(self):
         self.change_target_ip(self.bench)
         self.reset_keentuned("param", "fio.json")
         self.reset_keentuned("bench", "bench_fio_disk_IOPS.json")
-        self.reset_defeat_conf()
+        self.reset_default_conf()
         self.change_target_ip(self.target)
 
-    def test_param_domain_FUN_0_wrk(self):
+    def test_param_domain_FUN_wrk(self):
         self.change_target_ip(self.bench)
+        json_path = "/etc/keentune/parameter/wrk.json"
+        cmd = r'sed -i "s/\(.*\)cpu_core#\*300\(.*\)/\1cpu_core#\*100\2/" {}'.format(json_path)
+        self.assertEqual(sysCommand(cmd)[0], 0)
+        cmd = r'sed -i "s/\(.*\)cpu_core#\*3\(.*\)/\1cpu_core#\2/" {}'.format(json_path)
+        self.assertEqual(sysCommand(cmd)[0], 0)
         self.reset_keentuned("param", "wrk.json")
         self.reset_keentuned("bench", "wrk_parameter_tuning.json")
-        self.reset_defeat_conf()
+        self.reset_default_conf()
         self.change_target_ip(self.target)
 
     def test_profile_yitian_FUN_nginx(self):
