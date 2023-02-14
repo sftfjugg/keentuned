@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # baseline parameters
 DEFAULT_DURATION = 30
-DEFAULT = "--threads 32 --connections 3200"
+DEFAULT = "--threads 2 --connections 10"
 
 
 class Benchmark:
@@ -95,6 +95,7 @@ class Benchmark:
                 or not re.search(pattern_Requests_sec,self.out) \
                 or not re.search(pattern_Transfer_sec,self.out):
                 logger.error("can not parse output: {}".format(self.out))
+                print(self.error, cmd)
                 return False, []
 
             _latency_90 = float(re.search(pattern_latency_90,self.out).group(1))
@@ -124,6 +125,7 @@ class Benchmark:
 
         else:
             logger.error(self.error)
+            print(self.error, cmd)
             return False, []
 
 
