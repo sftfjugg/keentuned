@@ -24,3 +24,4 @@ restart_brain()
 #clear_keentune_env
 restart_brain
 echo "restart brain server successfully!"
+

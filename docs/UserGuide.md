@@ -35,6 +35,6 @@ The target module is responsible for applying the recommended knob configuration
 ### 2.6. Algorithm Visualization
 
 ## 3. Installation and Deployment
-### 3.1. Dependecies
+### 3.1. Dependencies
 ### 3.2. Installation
 ### 3.3. Configuration
