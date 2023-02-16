@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"keentune/daemon/common/config"
+	"keentune/daemon/common/file"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -152,9 +154,15 @@ func bindFileToGroup(args []string, setFlag SetFlag) {
 			os.Exit(1)
 		}
 
+		filePath, err := checkProfile(args[0])
+		if err != nil {
+			fmt.Printf("%v %v\n", ColorString("red", "[ERROR]"), err)
+			os.Exit(1)
+		}
+
 		for i, _ := range setFlag.ConfFile {
 			setFlag.Group[i] = true
-			setFlag.ConfFile[i] = args[0]
+			setFlag.ConfFile[i] = filePath
 		}
 
 		return
@@ -162,18 +170,43 @@ func bindFileToGroup(args []string, setFlag SetFlag) {
 
 	// Case2: bind a group according to the corresponding configuration by '--groupx' flag.
 	for i, v := range setFlag.ConfFile {
-		if strings.HasSuffix(v, ".conf") {
-			setFlag.Group[i] = true
-			continue
-		}
-
 		if len(v) != 0 {
-			fmt.Printf("%v Invalid value: group%v, '%v' is not with '.conf' suffix.\n", ColorString("red", "[ERROR]"), i+1, v)
-			os.Exit(1)
+			if !strings.HasSuffix(v, ".conf") {
+				fmt.Printf("%v Invalid value: group%v, '%v' is not with '.conf' suffix.\n", ColorString("red", "[ERROR]"), i+1, v)
+				os.Exit(1)
+			}
+
+			filePath, err := checkProfile(v)
+			if err != nil {
+				fmt.Printf("%v %v\n", ColorString("red", "[ERROR]"), err)
+				os.Exit(1)
+			}
+
+			setFlag.Group[i] = true
+			setFlag.ConfFile[i] = filePath
 		}
 	}
 
 	return
+}
+
+func checkProfile(fileName string) (string, error) {
+	var exactMatch = true
+	fullPath, homeFileList, _ := file.WalkFilePath(config.GetProfileHomePath(""), fileName, exactMatch)
+	dir, _ := path.Split(fileName)
+	// A file with the same name appears and no parent directory is specified
+	if len(homeFileList) > 1 && len(strings.TrimSpace(dir)) == 0 {
+		return "", fmt.Errorf("file '%v' with the same name exists in %v.\n \tPlease specify a more detailed path to execute again", fileName, strings.Join(fullPath, ", "))
+	}
+
+	filePath := config.GetProfilePath(fileName)
+	if filePath == "" {
+		return "", fmt.Errorf("file '%v' does not exist, expect in '%v' nor in '%v'", fileName,
+			fmt.Sprintf("%s/profile", config.KeenTune.Home),
+			fmt.Sprintf("%s/profile", config.KeenTune.DumpHome))
+	}
+
+	return filePath, nil
 }
 
 func deleteProfileCmd() *cobra.Command {
@@ -281,4 +314,5 @@ func generateCmd() *cobra.Command {
 
 	return cmd
 }
+
 

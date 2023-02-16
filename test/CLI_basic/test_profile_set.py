@@ -11,6 +11,8 @@ from common import runParamTune
 from common import deleteDependentData
 from common import checkServerStatus
 from common import sysCommand
+from common import getSysBackupData
+from common import checkBackupData
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +36,7 @@ class TestProfileSet(unittest.TestCase):
         logger.info('the test_profile_set testcase finished')
 
     def test_profile_set_FUN(self):
+        getSysBackupData()
         cmd = 'keentune profile set --group1 param1_group1.conf'
         self.status, self.out, _ = sysCommand(cmd)
         self.assertEqual(self.status, 0)
@@ -44,3 +47,6 @@ class TestProfileSet(unittest.TestCase):
         self.assertEqual(self.status, 0)
         self.result = re.search(r'\[(.*?)\].+param1_group1.conf', self.out).group(1)
         self.assertTrue(self.result.__contains__('active'))
+
+        res = checkBackupData()
+        self.assertEqual(res, 1)

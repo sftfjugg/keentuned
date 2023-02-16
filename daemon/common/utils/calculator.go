@@ -264,52 +264,52 @@ func getSingleCondResult(condition string) bool {
 	case strings.Contains(trimSpaceCond, ">="):
 		compares := strings.Split(trimSpaceCond, ">=")
 		if len(compares) == 2 {
-			lf, _ := strconv.ParseFloat(strings.TrimSpace(compares[0]), 64)
-			rt, _ := strconv.ParseFloat(strings.TrimSpace(compares[1]), 64)
+			lf := strings.TrimSpace(compares[0])
+			rt := strings.TrimSpace(compares[1])
 
-			return int(lf) >= int(rt)
+			return lf >= rt
 		}
 	case strings.Contains(trimSpaceCond, ">"):
 		compares := strings.Split(trimSpaceCond, ">")
 		if len(compares) == 2 {
-			lf, _ := strconv.ParseFloat(strings.TrimSpace(compares[0]), 64)
-			rt, _ := strconv.ParseFloat(strings.TrimSpace(compares[1]), 64)
+			lf := strings.TrimSpace(compares[0])
+			rt := strings.TrimSpace(compares[1])
 
-			return int(lf) > int(rt)
+			return lf > rt
 		}
 	case strings.Contains(trimSpaceCond, "<="):
 		compares := strings.Split(trimSpaceCond, "<=")
 		if len(compares) == 2 {
-			lf, _ := strconv.ParseFloat(strings.TrimSpace(compares[0]), 64)
-			rt, _ := strconv.ParseFloat(strings.TrimSpace(compares[1]), 64)
+			lf := strings.TrimSpace(compares[0])
+			rt := strings.TrimSpace(compares[1])
 
-			return int(lf) <= int(rt)
+			return lf <= rt
 		}
 
 	case strings.Contains(trimSpaceCond, "<"):
 		compares := strings.Split(trimSpaceCond, "<")
 		if len(compares) == 2 {
-			lf, _ := strconv.ParseFloat(strings.TrimSpace(compares[0]), 64)
-			rt, _ := strconv.ParseFloat(strings.TrimSpace(compares[1]), 64)
+			lf := strings.TrimSpace(compares[0])
+			rt := strings.TrimSpace(compares[1])
 
-			return int(lf) < int(rt)
+			return lf < rt
 		}
 
 	case strings.Contains(trimSpaceCond, "!="):
 		compares := strings.Split(trimSpaceCond, "!=")
 		if len(compares) == 2 {
-			lf, _ := strconv.ParseFloat(strings.TrimSpace(compares[0]), 64)
-			rt, _ := strconv.ParseFloat(strings.TrimSpace(compares[1]), 64)
+			lf := strings.TrimSpace(compares[0])
+			rt := strings.TrimSpace(compares[1])
 
-			return int(lf) != int(rt)
+			return lf != rt
 		}
 	case strings.Contains(trimSpaceCond, "="):
 		compares := strings.Split(trimSpaceCond, "=")
 		if len(compares) == 2 {
-			lf, _ := strconv.ParseFloat(strings.TrimSpace(compares[0]), 64)
-			rt, _ := strconv.ParseFloat(strings.TrimSpace(compares[1]), 64)
+			lf := strings.TrimSpace(compares[0])
+			rt := strings.TrimSpace(compares[1])
 
-			return int(lf) == int(rt)
+			return lf == rt
 		}
 
 	case strings.Contains(trimSpaceCond, "∈"):

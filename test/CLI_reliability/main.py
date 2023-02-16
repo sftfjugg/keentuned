@@ -3,7 +3,6 @@ import sys
 import unittest
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
-os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
 from CLI_reliability.test_param_tune import TestParamTune
 from CLI_reliability.test_param_dump import TestParamDump
@@ -25,6 +24,7 @@ from CLI_reliability.test_param_tune_stop import TestParamTuneStop
 from CLI_reliability.test_multi_scenes import TestMultiScenes
 from CLI_reliability.test_multi_target import TestMultiTarget
 from CLI_reliability.test_keentune_init import TestKeentuneInit
+from CLI_reliability.test_tuned_profile import TestTunedProfile
 
 
 def RunReliabilityCase():
@@ -62,10 +62,15 @@ def RunReliabilityCase():
     multi_init = unittest.TestSuite()
     multi_init.addTests(unittest.TestLoader().loadTestsFromTestCase(TestKeentuneInit))
 
-    suite = unittest.TestSuite([param_suite, profile_suite, sensitize_suite, combination_suite, multi_scenes, multi_target, multi_init])
+    tuned_suite = unittest.TestSuite()
+    tuned_suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestTunedProfile))
+
+    suite = unittest.TestSuite([param_suite, profile_suite, sensitize_suite, combination_suite, tuned_suite, multi_scenes, multi_target, multi_init])
     return suite
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.abspath(os.path.join(os.getcwd(), "..")))
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(RunReliabilityCase())
+

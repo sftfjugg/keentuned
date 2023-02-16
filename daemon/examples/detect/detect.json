@@ -1,5 +1,8 @@
 {
     "cpu_core":"cat /proc/cpuinfo | grep process | wc -l",
     "mem_total": "free -g| grep 'Mem' | awk '{print $2}'",
-    "mem_free" : "free -g| grep 'Mem' | awk '{print $4}'"
+    "mem_free" : "free -g| grep 'Mem' | awk '{print $4}'",
+    "uname_arch": "arch",
+    "thunderx_cpu_info": "cat /proc/cpuinfo | grep 'CPU part'| uniq",
+    "amd_cpu_model": "cat /proc/cpuinfo | grep 'model name'| uniq"
 }

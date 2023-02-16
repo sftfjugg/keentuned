@@ -7,6 +7,7 @@ import (
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
+	"keentune/daemon/common/utils/http"
 	"strings"
 )
 
@@ -38,10 +39,19 @@ type ItemDetail struct {
 	Baseline []float32 `json:"base,omitempty"`
 }
 
+type target struct {
+	desSeparator string // description separator
+	host         string
+	ipIndex      int
+	tabSeparator string // table separator
+	reqBody      interface{}
+	respBody     []byte
+}
+
 // Save configuration to profile file
 func (conf Configuration) Save(fileName, suffix string) error {
 	// acquire API return round is 1 less than the actual round value
-	conf.Round += 1
+	conf.Round = conf.Round + 1
 
 	err := file.Dump2File(config.GetTuningPath(fileName), fileName+suffix, conf)
 	if err != nil {
@@ -51,7 +61,7 @@ func (conf Configuration) Save(fileName, suffix string) error {
 }
 
 // collectParam collect param change map to struct map and state param success information
-func collectParam(applyResp map[string]interface{}) (string, map[string]Parameter, error) {
+func (tg target) collectParam(applyResp map[string]interface{}) (string, map[string]Parameter, error) {
 	if len(applyResp) == 0 {
 		return "", nil, fmt.Errorf("apply response is null")
 	}
@@ -59,46 +69,45 @@ func collectParam(applyResp map[string]interface{}) (string, map[string]Paramete
 	var paramCollection = make(map[string]Parameter)
 	var setResult string
 	var totalFailed int
+
 	for domain, paramMap := range applyResp {
 		var sucCount, failedCount, skippedCount int
-		var failedInfoSlice [][]string
-		var parameter map[string]interface{}
-		setResult += fmt.Sprintf("\t\t[%v]\t", domain)
+		var failedInfoSlice []string
 
-		switch value := paramMap.(type) {
-		case map[string]interface{}:
-			parameter = value
-		case string:
-			setResult += fmt.Sprintf("%v %v\n", utils.ColorString("yellow", "[Warning]"), value)
-			continue
-		}
+		setResult += fmt.Sprintf("%v[%v] ", tg.desSeparator, domain)
 
-		for name, orgValue := range parameter {
-			var appliedInfo Parameter
-			err := utils.Map2Struct(orgValue, &appliedInfo)
-			if err != nil {
-				return "", paramCollection, fmt.Errorf("collect Param err: %v", err)
+		parameter, _ := paramMap.(map[string]interface{})
+
+		for name, param := range parameter {
+			var detail struct {
+				Success bool        `json:"suc"`
+				Msg     interface{} `json:"msg"`
+				Value   interface{} `json:"value"`
 			}
 
-			appliedInfo.DomainName = domain
-			value, ok := appliedInfo.Value.(string)
-			if ok && strings.Contains(value, "\t") {
-				appliedInfo.Value = strings.ReplaceAll(value, "\t", " ")
+			utils.Map2Struct(param, &detail)
+
+			valueStr, ok := detail.Value.(string)
+			if ok && strings.Contains(valueStr, "\t") {
+				detail.Value = strings.ReplaceAll(valueStr, "\t", " ")
 			}
 
-			paramCollection[name] = appliedInfo
+			paramCollection[name] = Parameter{
+				DomainName: domain,
+				ParaName:   name,
+				Value:      detail.Value,
+			}
 
-			if appliedInfo.Success {
+			if detail.Success {
 				sucCount++
 				continue
 			}
 
 			failedCount++
 			totalFailed++
-			if failedCount == 1 {
-				failedInfoSlice = append(failedInfoSlice, []string{"param name", "failed reason"})
-			}
-			failedInfoSlice = append(failedInfoSlice, []string{name, appliedInfo.Msg})
+			msg := strings.ReplaceAll(fmt.Sprint(detail.Msg), "\n", ". ")
+			redFailed := utils.ColorString("red", "FAILED")
+			failedInfoSlice = append(failedInfoSlice, fmt.Sprintf("%v[%v] %v: %v", tg.tabSeparator, redFailed, name, msg))
 		}
 
 		successInfo := fmt.Sprintf("%v Succeeded, %v Failed, %v Skipped", sucCount, failedCount, skippedCount)
@@ -107,8 +116,8 @@ func collectParam(applyResp map[string]interface{}) (string, map[string]Paramete
 			continue
 		}
 
-		failedDetail := utils.FormatInTable(failedInfoSlice, "\t\t\t")
-		setResult += fmt.Sprintf("%v; the failed details:%s\n", successInfo, failedDetail)
+		failedDetail := strings.Join(failedInfoSlice, "\n")
+		setResult += fmt.Sprintf("%v\n%s\n", successInfo, failedDetail)
 	}
 
 	if totalFailed == len(paramCollection) {
@@ -118,13 +127,13 @@ func collectParam(applyResp map[string]interface{}) (string, map[string]Paramete
 	return setResult, paramCollection, nil
 }
 
-func getApplyResult(sucBytes []byte, id int) (map[string]interface{}, error) {
+func (tg target) getApplyResult() (map[string]interface{}, error) {
 	var applyShortRet struct {
 		Success bool        `json:"suc"`
 		Msg     interface{} `json:"msg"`
 	}
 
-	err := json.Unmarshal(sucBytes, &applyShortRet)
+	err := json.Unmarshal(tg.respBody, &applyShortRet)
 	if err != nil {
 		return nil, err
 	}
@@ -138,14 +147,12 @@ func getApplyResult(sucBytes []byte, id int) (map[string]interface{}, error) {
 	}
 
 	var applyResp struct {
-		Success bool                   `json:"suc"`
-		Data    map[string]interface{} `json:"data"`
-		Msg     interface{}            `json:"msg"`
+		Data map[string]interface{} `json:"data"`
 	}
 
 	select {
-	case body := <-config.ApplyResultChan[id]:
-		log.Debugf(log.ParamTune, "target id: %v receive apply result :[%v]\n", id, string(body))
+	case body := <-config.ApplyResultChan[tg.ipIndex]:
+		log.Debugf(log.ParamTune, "target id: %v receive apply result :[%v]\n", tg.ipIndex, string(body))
 		if err := json.Unmarshal(body, &applyResp); err != nil {
 			return nil, fmt.Errorf("Parse apply response Unmarshal err: %v", err)
 		}
@@ -153,32 +160,66 @@ func getApplyResult(sucBytes []byte, id int) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("get apply result is interrupted")
 	}
 
-	if !applyResp.Success {
-		msg, _ := json.Marshal(applyResp.Msg)
-		var paramInfo map[string]interface{}
-		err = json.Unmarshal(msg, &paramInfo)
-		if err != nil {
-			return nil, fmt.Errorf("%s", msg)
-		}
-
-		details, _, _ := collectParam(paramInfo)
-		if strings.Contains(details, "failed details") {
-			return nil, fmt.Errorf(details)
-		}
-
-		return nil, fmt.Errorf("%s", msg)
-	}
-
 	return applyResp.Data, nil
 }
 
 // GetApplyResult get apply result by waiting for target active reports
-func GetApplyResult(body []byte, id int) (string, map[string]Parameter, error) {
-	applyResp, err := getApplyResult(body, id)
+func (tg target) GetApplyResult() (string, map[string]Parameter, error) {
+	applyResp, err := tg.getApplyResult()
 	if err != nil {
 		return "", nil, err
 	}
 
-	return collectParam(applyResp)
+	return tg.collectParam(applyResp)
 }
+
+// Configure ...
+func Configure(req interface{}, host string, ipIndex int) (string, error) {
+	config.IsInnerApplyRequests[ipIndex] = true
+	defer func() { config.IsInnerApplyRequests[ipIndex] = false }()
+	desSep := "\t"
+	tabSep := "\t\t"
+
+	tgt := newTarget(ipIndex, host, req, []string{desSep, tabSep}...)
+
+	applyResult, _, err := tgt.configure()
+	return applyResult, err
+}
+
+func newTarget(index int, host string, body interface{}, args ...string) target {
+	desSep, tabSep := "\t\t", "\t\t\t"
+	if len(args) == 2 {
+		desSep = args[0]
+		tabSep = args[1]
+	}
+
+	return target{
+		desSeparator: desSep,
+		host:         host,
+		ipIndex:      index,
+		tabSeparator: tabSep,
+		reqBody:      body,
+	}
+}
+
+func (tg target) configure() (string, map[string]Parameter, error) {
+	uri := fmt.Sprintf("%v/configure", tg.host)
+	var err error
+	tg.respBody, err = http.RemoteCall("POST", uri, tg.reqBody)
+	if err != nil {
+		return "", nil, fmt.Errorf("remote call: %v", err)
+	}
+
+	applyResult, paramInfo, err := tg.GetApplyResult()
+	if err != nil {
+		if applyResult != "" {
+			return applyResult, nil, fmt.Errorf(applyResult)
+		}
+
+		return applyResult, nil, err
+	}
+
+	return applyResult, paramInfo, nil
+}
+
 

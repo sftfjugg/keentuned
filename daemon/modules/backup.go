@@ -2,16 +2,18 @@ package modules
 
 import (
 	"encoding/json"
+	"fmt"
 	"keentune/daemon/common/utils/http"
-)
-
-var (
-	backupENVNotMetFmt = "Can't find %v, please check %v is installed"
 )
 
 // application
 const (
 	myConfApp = "MySQL"
+)
+
+// avoid domain
+const (
+	selinuxDomain = "selinux"
 )
 
 const (
@@ -20,15 +22,17 @@ const (
 
 const backupAllErr = "All of the domain backup failed"
 
-type backupDetail struct {
-	// Available ...
-	Available bool        `json:"avaliable"`
-	Value     interface{} `json:"value"`
-	Msg       interface{} `json:"msg"`
+var (
+	backupENVNotMetFmt = "Can't find %v, please check %v is installed"
+)
+
+var unavailableDomainReason = map[string]string{
+	myConfDomain:  fmt.Sprintf(backupENVNotMetFmt, myConfBackupFile, myConfApp),
+	selinuxDomain: fmt.Sprintf("unvaliable domain '%v': %v", selinuxDomain, notSupportRecommend),
 }
 
 func (tuner *Tuner) backup() error {
-	err := tuner.concurrent("backup", true)
+	err := tuner.concurrent("backup")
 	if tuner.Flag == JobProfile {
 		return err
 	}
@@ -45,7 +49,7 @@ func (tuner *Tuner) backup() error {
 }
 
 func callBackup(method, url string, request interface{}) (map[string]map[string]string, string, int) {
-	var response map[string]map[string]backupDetail
+	var response map[string]interface{}
 	resp, err := http.RemoteCall(method, url, request)
 	if err != nil {
 		return nil, err.Error(), FAILED
@@ -63,31 +67,38 @@ func callBackup(method, url string, request interface{}) (map[string]map[string]
 	var unAVLParam = make(map[string]map[string]string)
 
 	for domain, param := range req {
-		domainParam, find := response[domain]
-		if !find {
-			unAVLParam[domain] = map[string]string{}
+		reason, match := response[domain].(string)
+		if match {
+			// whole domain is not available
+			defReason, ok := unavailableDomainReason[domain]
+			if ok {
+				unAVLParam[domain] = map[string]string{
+					domain: defReason,
+				}
+			} else {
+				unAVLParam[domain] = map[string]string{
+					domain: reason,
+				}
+			}
+
 			continue
 		}
 
+		domainParam, _ := response[domain].(map[string]interface{})
 		parameter := param.(map[string]interface{})
 		for name, _ := range parameter {
 			_, exists := domainParam[name]
-			if !exists || !domainParam[name].Available {
+			if !exists {
 				_, notExist := unAVLParam[domain]
 				if !notExist {
 					unAVLParam[domain] = make(map[string]string)
 				}
-				msgBytes, _ := json.Marshal(domainParam[name].Msg)
-				msg := string(msgBytes)
-				if msg == "" || msg == "null" {
-					msg = "domain can not backup"
-				}
-
-				unAVLParam[domain][name] = msg
+				unAVLParam[domain][name] = fmt.Sprintf("'%v' can not backup", name)
 			}
 		}
 	}
 
 	return unAVLParam, "", SUCCESS
 }
+
 

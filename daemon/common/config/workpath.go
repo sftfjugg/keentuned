@@ -72,8 +72,6 @@ func GetProfileHomePath(fileName string) string {
 
 	// relative path
 	return fmt.Sprintf("%v%v", GetProfileHomePath(""), strings.TrimPrefix(fileName, "profile/"))
-
-	return assembleFilePath(KeenTune.Home, "profile", fileName)
 }
 
 func GetSensitizeHomePath(fileName string) string {
@@ -200,7 +198,7 @@ func GetKeenTunedConfPath(origin string) string {
 }
 
 func GetProfilePath(fileName string) string {
-	if file.IsPathExist(fileName) {
+	if strings.HasPrefix(fileName, "/") && file.IsPathExist(fileName) {
 		return fileName
 	}
 
@@ -216,4 +214,5 @@ func GetProfilePath(fileName string) string {
 
 	return ""
 }
+
 

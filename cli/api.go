@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"keentune/daemon/common/utils"
 	"log"
 	"net/rpc"
 	"os"
+	"strings"
 )
 
 // TuneFlag tune options
@@ -63,6 +65,10 @@ type BenchmarkFlag struct {
 	Name      string
 }
 
+type MigrateFlag struct {
+	Filepath string
+}
+
 var (
 	outputTips = "If the %v name is duplicated, overwrite? Y(yes)/N(no)"
 	deleteTips = "Are you sure you want to permanently delete job data"
@@ -82,6 +88,12 @@ func remoteImpl(callName string, flag interface{}) {
 	}
 
 	fmt.Printf("%v", reply)
+	if strings.Contains(reply, "[ERROR]") ||
+		strings.Contains(reply, utils.ColorString("red", "[ERROR]")) ||
+		strings.Contains(reply, utils.ColorString("red", "ERROR")) {
+		os.Exit(1)
+	}
+
 	return
 }
 
@@ -164,4 +176,5 @@ func RunRollbackAllRemote() {
 func RunInitRemote() {
 	remoteImpl("system.Init", "")
 }
+
 

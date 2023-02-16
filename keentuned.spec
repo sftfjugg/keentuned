@@ -1,8 +1,8 @@
 %define debug_package %{nil}
-%define anolis_release 0
+%define anolis_release 2
 
 Name:           keentuned
-Version:        1.4.0
+Version:        2.0.1
 Release:        %{?anolis_release}%{?dist}
 Url:            https://gitee.com/anolis/keentuned
 Summary:        KeenTune tuning tools
@@ -36,9 +36,6 @@ rm -rf $RPM_BUILD_DIR/%{name}-%{version}
 
 %post
 %systemd_post keentuned.service
-if [ -f "%{_prefix}/lib/systemd/system/keentuned.service" ]; then
-    systemctl enable keentuned.service || :
-fi
 
 %preun
 %systemd_preun keentuned.service
@@ -52,6 +49,7 @@ fi
 %doc README.md docs/*
 %attr(0755, root, root) %{_bindir}/keentune
 %attr(0755, root, root) %{_bindir}/keentuned
+%attr(0666, root, root) %{_sysconfdir}/keentune/conf/keentuned.conf
 %dir %{_sysconfdir}/keentune
 %dir %{_sysconfdir}/keentune/conf
 %{_sysconfdir}/keentune
@@ -65,6 +63,15 @@ fi
 %{_prefix}/share/bash-completion/completions/keentune.bash
 
 %changelog
+* Tue Jan 17 2023 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.1-2
+- add: Update profile set for UI
+- fix: Reduce the delay of default setting
+- fix: Sync update keentune version in docs
+- fix: other known important bug fixes
+
+* Thu Dec 15 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 2.0.0-0
+- Support experience tuning of Tuned
+
 * Thu Sep 22 2022 Wenchao Liu <wb-lwc921938@alibaba-inc.com> - 1.4.0-0
 - add: Support UI Intelligent tuning and Sensitive parameter identification
 - add: Support show recommendation log for expert one click tuning

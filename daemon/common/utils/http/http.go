@@ -36,7 +36,8 @@ func newRequester(method string, uri string, data interface{}) (*requester, erro
 			DialContext: (&net.Dialer{
 				Timeout: 900 * time.Millisecond, // conn timeout
 			}).DialContext,
-			DisableKeepAlives: true,
+			DisableKeepAlives:     true,
+			ResponseHeaderTimeout: 5 * time.Minute,
 		},
 	}
 
@@ -120,7 +121,7 @@ func ResponseSuccess(method, url string, request interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	message := parseMessage(resp)
 	if message != "" {
 		return fmt.Errorf("response suc is false, msg is %v", message)
@@ -145,4 +146,5 @@ func parseMessage(resp []byte) string {
 
 	return ""
 }
+
 

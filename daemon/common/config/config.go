@@ -146,12 +146,14 @@ func Init() {
 
 func initChanAndIPMap() {
 	IsInnerBenchRequests = make([]bool, len(KeenTune.BenchIPMap)+2)
-	IsInnerApplyRequests = make([]bool, len(KeenTune.IPMap)+2)
+	applyChanSize := (len(KeenTune.IPMap) + 1) * 2
+	IsInnerApplyRequests = make([]bool, applyChanSize)
 	IsInnerSensitizeRequests = make([]bool, len(KeenTune.IPMap)+2)
-	ApplyResultChan = make([]chan []byte, len(KeenTune.IPMap)+2)
 
-	for _, index := range KeenTune.IPMap {
-		ApplyResultChan[index] = make(chan []byte, 1)
+	ApplyResultChan = make([]chan []byte, applyChanSize)
+
+	for i := 0; i < applyChanSize; i++ {
+		ApplyResultChan[i] = make(chan []byte, 1)
 	}
 
 	BenchmarkResultChan = make([]chan []byte, len(KeenTune.BenchIPMap)+2)
@@ -472,4 +474,6 @@ func GetJobParamConfig(job string) (string, string, error) {
 
 	return strings.TrimSuffix(parameterConf, "\n"), benchConf, nil
 }
+
+
 

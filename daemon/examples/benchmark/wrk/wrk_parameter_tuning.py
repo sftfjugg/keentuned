@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # baseline parameters
 DEFAULT_DURATION = 30
-DEFAULT = "--threads 32 --connections 3200"
+DEFAULT = "--threads 2 --connections 10"
 
 
 class Benchmark:
@@ -27,7 +27,7 @@ class Benchmark:
             duration (int, optional): Duration of test.
         """
         # Modify the test command based on the actual scenario
-        self.CMD = "wrk {} --duration {} --latency https://{}:443/0kb.bin ".format(default, duration, url)
+        self.CMD = "wrk {} --duration {} --latency http://{}".format(default, duration, url)
 
     def __transfMeasurement(self,value,measurement):
         if measurement == '':
@@ -95,6 +95,7 @@ class Benchmark:
                 or not re.search(pattern_Requests_sec,self.out) \
                 or not re.search(pattern_Transfer_sec,self.out):
                 logger.error("can not parse output: {}".format(self.out))
+                print(self.error, cmd)
                 return False, []
 
             _latency_90 = float(re.search(pattern_latency_90,self.out).group(1))
@@ -124,6 +125,7 @@ class Benchmark:
 
         else:
             logger.error(self.error)
+            print(self.error, cmd)
             return False, []
 
 
@@ -134,5 +136,6 @@ if __name__ == "__main__":
         exit(1)
     bench = Benchmark(sys.argv[1])
     suc, res = bench.run()
+
 
 

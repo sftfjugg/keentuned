@@ -17,10 +17,11 @@ restart_brain()
     else
         sed -i "s/AUTO_TUNING_ALGORITHM.*=.*/AUTO_TUNING_ALGORITHM = ${algorithm}/g" $keentuned_conf
     fi
-    keentuned > keentune_algorithm.log 2>&1 &
+    #keentuned > keentune_algorithm.log 2>&1 &
     sleep 5
 }
 
-clear_keentune_env
+#clear_keentune_env
 restart_brain
 echo "restart brain server successfully!"
+

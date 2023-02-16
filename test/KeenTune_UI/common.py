@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def keentuneInit(obj):
     obj.driver.get("http://{}:8082/settings".format(obj.web_ip))
+    sleep(5)
     brain_config = "[brain]\nBRAIN_IP = localhost"
     bench_config = "[bench-group-1]\nBENCH_SRC_IP = localhost\nBENCH_DEST_IP = localhost\nBENCH_SRC_PORT = 9874\nBENCH_CONFIG = wrk_http_long.json"
     target_config = "[target-group-1]\nTARGET_IP = localhost\nTARGET_PORT = 9873\nPARAMETER = sysctl.json"

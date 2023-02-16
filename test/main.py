@@ -7,8 +7,6 @@ from CLI_basic.main import RunBasicCase
 from CLI_reliability.main import RunReliabilityCase
 from MT_restful.main import RunModelCase
 
-os.chdir(os.path.abspath(os.path.join(os.getcwd(), "test")))
-
 
 def RunAllCase():
     basic_suite = RunBasicCase()
@@ -25,3 +23,4 @@ if __name__ == '__main__':
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(RunAllCase())
     print("--------------- run test cases end ---------------")
+

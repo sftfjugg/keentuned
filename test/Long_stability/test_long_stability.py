@@ -68,8 +68,8 @@ class TestLongStability(unittest.TestCase):
             self.status, self.out, _ = sysCommand(all_cmd)
             self.assertEqual(self.status, 0)
             self.assertTrue(self.out.__contains__('Rollback all successfully') or self.out.__contains__('All Targets No Need to Rollback'))
-            
-            for tune_algorithm in ("tpe", "hord", "random"):
+
+            for tune_algorithm in ("tpe", "hord", "random", "bgcs", "lamcts"):
                 cmd = "echo y | keentune param delete --job {}".format(self.job_name)
                 sysCommand(cmd)
 
@@ -80,7 +80,7 @@ class TestLongStability(unittest.TestCase):
                 time.sleep(5)
             
             for algorithm in ('lasso', 'univariate', 'shap', 'explain', 'gp'):
-                sed_cmd = 'sed -i "s/SENSITIZE_ALGORITHM\(.*\)=.*/SENSITIZE_ALGORITHM\\1= {}/" /etc/keentune/conf/keentuned.conf'.format(algorithm)
+                sed_cmd = 'sed -i "s/SENSITIZE_ALGORITHM\(.*\)=.*/SENSITIZE_ALGORITHM\1= {}/" /etc/keentune/conf/keentuned.conf'.format(algorithm)
                 sysCommand(sed_cmd)
 
                 cmd = "echo y | keentune sensitize train --data {0} --job {0} -t 10".format(self.job_name)
@@ -92,10 +92,8 @@ class TestLongStability(unittest.TestCase):
                 time.sleep(2)
 
             self.profile_dump(self.job_name)
-
-            cmd = "keentune profile list | awk '{print$2}'"
-            self.status, self.out, _ = sysCommand(cmd)
-            for profile_name in self.out.strip().split("\n"):
+            profile_list = ["{}_group1.conf".format(self.job_name), "cpu_high_load.conf"]
+            for profile_name in profile_list:
                 for i in range(100):
                     self.profile_set(profile_name)
                     time.sleep(2)

@@ -18,7 +18,7 @@ _keentune()
     'generate' | 'info')
           COMPREPLY=( $(compgen -W '--name' -- $cur) ) ;;	  
     'sensitize')
-          COMPREPLY=( $(compgen -W 'delete jobs stop train' -- $cur) ) ;; 
+          COMPREPLY=( $(compgen -W 'delete jobs stop train' -- $cur) ) ;;
     'train')
           COMPREPLY=( $(compgen -W '--data' -- $cur) ) ;;		  
     'set')

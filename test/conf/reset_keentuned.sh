@@ -19,10 +19,10 @@ restart_keentuned()
         sed -i "s/BENCH_CONFIG.*=.*/BENCH_CONFIG = ${json_name}/g" $keentuned_conf_path
     fi
     
-    keentuned > keentuned-multi_target.log 2>&1 &
+    #keentuned > keentuned-multi_target.log 2>&1 &
     sleep 5
 }
 
-clear_keentune_env
+#clear_keentune_env
 restart_keentuned
 echo "restart keentuned server successfully!"

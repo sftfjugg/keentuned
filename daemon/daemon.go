@@ -43,6 +43,8 @@ func main() {
 
 	go showStart()
 
+	go profile.SetDefault()
+
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -131,4 +133,5 @@ func notifySystemd() {
 		return
 	}
 }
+
 

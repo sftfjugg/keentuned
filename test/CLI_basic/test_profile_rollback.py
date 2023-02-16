@@ -12,6 +12,8 @@ from common import deleteDependentData
 from common import runParamTune
 from common import runParamDump
 from common import runProfileSet
+from common import getSysBackupData
+from common import checkBackupData
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,7 @@ class TestProfileRollback(unittest.TestCase):
         server_list = ["keentuned", "keentune-target"]
         status = checkServerStatus(server_list)
         self.assertEqual(status, 0)
+        getSysBackupData()
         status = runParamTune("param1")
         self.assertEqual(status, 0)
         status = runParamDump("param1")
@@ -43,10 +46,12 @@ class TestProfileRollback(unittest.TestCase):
         self.result = re.search(r'\[(.*?)\].+param1_group1.conf', self.out).group(1)
         self.assertTrue(self.result.__contains__('active'))
 
+        self.assertEqual(checkBackupData(), 1)
         cmd = 'keentune profile rollback'
         self.status, self.out, _ = sysCommand(cmd)
         self.assertEqual(self.status, 0)
         self.assertTrue(self.out.__contains__('profile rollback successfully'))
+        self.assertEqual(checkBackupData(), 0)
 
         cmd = 'keentune profile list'
         self.status, self.out, _ = sysCommand(cmd)

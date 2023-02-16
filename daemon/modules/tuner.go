@@ -25,8 +25,7 @@ type implyDetail struct {
 
 // Tuner define a tuning job include Algorithm, Benchmark, Group
 type Tuner struct {
-	// Name job name
-	Name          string
+	Name          string // Name job name
 	Algorithm     string // 使用的算法
 	MAXIteration  int    // 最大执行轮次
 	Iteration     int    // 当前轮次
@@ -49,6 +48,7 @@ type Tuner struct {
 	allowUpdate bool
 	Setter
 	Trainer
+	rollbackReq map[string]interface{}
 }
 
 type timeSpend struct {
@@ -293,10 +293,6 @@ func (tuner *Tuner) IncreaseStep(initVal ...int) int {
 
 	tuner.Step = initVal[0] + 1
 	return tuner.Step
-}
-
-func (tuner *Tuner) original() error {
-	return tuner.concurrent("original", false)
 }
 
 // deleteUnAVLParams delete unavailable parameters for brain init

@@ -43,6 +43,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
 
         keentuneInit(self)
         self.driver.get("http://{}:8082/list/profile".format(self.web_ip))
+        sleep(5)
         value = self.driver.find_element(By.XPATH, '//div[@class="ant-pro-table-list-toolbar-title"]').text
         if "Tuning Profiles" in value:
             self.driver.find_element(By.XPATH,
@@ -50,27 +51,28 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
 
         self.wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@class="ant-btn ant-btn-primary"]'))).click()
         self.driver.find_element(By.ID, "name").send_keys("1")
-        self.driver.find_element(By.ID, "info").send_keys("[my.con]\ninnodb_file_per_table: 1")
+        self.driver.find_element(By.ID, "info").send_keys("[sysctl]\nkernel.sched_migration_cost_ns: 5000")
         self.wait.until(EC.element_to_be_clickable(
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[2]'))).click()
+        sleep(5)
 
     @classmethod
     def tearDownClass(self) -> None:
         self.driver.get("http://{}:8082/list/profile".format(self.web_ip))
         for i in range(9):
-            first_text = self.wait.until(EC.visibility_of_element_located((By.XPATH,'//tr[@data-row-key="1"]//td[1]//div[1]//span[1]'))).text
-            if first_text != 'cpu_high_load.conf':
-                self.wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, '//tr[@data-row-key="1"]//td[4]//div[1]//div[1]/span'))).click()
-                self.wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, '//div[@class="ant-popover-buttons"]/button[2]/span'))).click()
-                sleep(1)
+            count_text = self.driver.find_element(By.XPATH, '//tr[@data-row-key="1"]//td[4]')
+            sleep(1)
+            if count_text.text != "0":
+                self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[1]//span'))).click()
+                self.wait.until(EC.element_to_be_clickable((By.XPATH,'//tr[@data-row-key="1-1"]//td[4]//div[1]//div[1]/span'))).click()
+                self.wait.until(EC.element_to_be_clickable((By.XPATH,'//div[@class="ant-popover-buttons"]/button[2]/span'))).click()
+                sleep(5)
             else:
                 break
         self.driver.quit()
 
     def setUp(self) -> None:
-        sleep(1)
+        sleep(3)
 
     def tearDown(self) -> None:
         sleep(1)
@@ -84,8 +86,8 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
                 (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_group_empty(self):
-        sleep(1)
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]//td[4]//div[5]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[1]//span'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]//td[4]//div[5]'))).click()
         self.wait.until(EC.element_to_be_clickable((By.XPATH, '//div[3]/div/div[2]/button/span'))).click()
         ele_group_error = self.driver.find_element(By.XPATH, '//div[@class="ant-message-notice-content"]//span[2]')
         sleep(1)
@@ -93,7 +95,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
         self.wait.until(EC.element_to_be_clickable((By.XPATH, '//div[3]/div/div[1]/button/span'))).click()
 
     def test_copyfile_name_exsit(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[2]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[2]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.BACKSPACE)
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys("cpu_high_load")
@@ -114,7 +116,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_editorfile_exsit_name(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[3]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[3]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.BACKSPACE)
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys("cpu_high_load")
@@ -127,7 +129,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_copyfile_name_empty(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[2]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[2]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.BACKSPACE)
         sleep(1)
@@ -138,9 +140,9 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_copyfile_context_empty(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[2]'))).click()
-        self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.CONTROL, "a")
-        self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.BACKSPACE)
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[2]'))).click()
+        self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.CONTROL, "a")
+        self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.BACKSPACE)
         sleep(1)
         ele_copy_context_empty = self.driver.find_element(By.XPATH,
                                                           '//div[@class="ant-form-item-explain ant-form-item-explain-connected"]')
@@ -150,7 +152,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_copyfile_context_error(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[2]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[2]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.BACKSPACE)
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys("error_file_context")
@@ -163,7 +165,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
 
     def test_creatfile_name_empty(self):
         self.wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@class="ant-btn ant-btn-primary"]'))).click()
-        self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys("[my.con]")
+        self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys("[sysctl]")
         self.wait.until(EC.element_to_be_clickable(
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[2]'))).click()
         sleep(1)
@@ -196,7 +198,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_editorfile_delete_name(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[3]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[3]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "name"))).send_keys(Keys.BACKSPACE)
         ele_deletename = self.driver.find_element(By.XPATH,
@@ -207,7 +209,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_editorfile_delete_content(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[3]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[3]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.BACKSPACE)
         sleep(1)
@@ -218,7 +220,7 @@ class TestKeenTuneUiAbnormal(unittest.TestCase):
             (By.XPATH, '//div[@class="ant-modal-mask"]/../div[2]/div[1]/div[2]/div[3]/div[1]/div[1]'))).click()
 
     def test_editorfile_error_content(self):
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1"]/td[4]//div[3]'))).click()
+        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//tr[@data-row-key="1-1"]/td[4]//div[3]'))).click()
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.CONTROL, "a")
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys(Keys.BACKSPACE)
         self.wait.until(EC.visibility_of_element_located((By.ID, "info"))).send_keys("error_content")

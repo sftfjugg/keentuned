@@ -24,9 +24,9 @@ e.g.
 """
 
 #const
-FileName = "/dev/sda"
+FileName = "/dev/vda"
 TestType = "read"
-COMMAND = "-ioengine=psync -time_based=1 -rw={0} -direct=1 -buffered=0 -thread -size=110g -runtime=300 -lockmem=1G -group_reporting -name={0}".format(TestType)
+COMMAND = "-ioengine=psync -time_based=1 -rw={0} -direct=1 -buffered=0 -thread -size=110g -runtime=30 -lockmem=1G -group_reporting -name={0}".format(TestType)
 DEFAULT = "-bs=512B -numjobs=8 -iodepth=1"
 
 class Benchmark():
@@ -94,4 +94,5 @@ class Benchmark():
 if __name__ == "__main__":
     bench = Benchmark()
     suc, result = bench.run()
+
 

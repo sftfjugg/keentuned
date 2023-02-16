@@ -7,6 +7,8 @@ import (
 	"keentune/daemon/common/file"
 	"os"
 	"strings"
+	"io"
+	"bufio"
 )
 
 var egBenchmark = "\tkeentune benchmark --job bench_test --bench benchmark/wrk/bench_wrk_nginx_long.json -i 10"
@@ -17,12 +19,14 @@ func subCommands() []*cobra.Command {
 	subCmds = append(subCmds, decorateCmd(createParamCmds()))
 	subCmds = append(subCmds, decorateCmd(createProfileCmds()))
 	subCmds = append(subCmds, decorateCmd(benchCmd()))
+	subCmds = append(subCmds, decorateCmd(migrateCmd()))
 	subCmds = append(subCmds, decorateCmd(createRollbackAllCmd()))
 	subCmds = append(subCmds, decorateCmd(initCmd()))
 
 	return subCmds
 }
 
+var egMigrate = "\tkeentune migrate --dir virtual-host"
 func initCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "init",
@@ -158,6 +162,80 @@ func newRootCmd() *cobra.Command {
 
 	cmd.Flags().BoolVarP(&isCatVersion, "version", "v", false, "version message")
 	return cmd
+}
+
+func migrateCmd() *cobra.Command {
+	var flag MigrateFlag
+	var cmd = &cobra.Command{
+		Use:     "migrate",
+                Short:   "Migrate the profile from Tuned to KeenTune",
+                Long:    "Migrate the profile from Tuned to KeenTune",
+                Example: egMigrate,
+                Run: func(cmd *cobra.Command, args []string) {
+			changeFileName(flag.Filepath)
+                },
+        }
+	flags := cmd.Flags()
+        flags.StringVar(&flag.Filepath, "dir", "", "Tuned profile dir name")
+        return cmd
+}
+
+func changeFileName(dir string) {
+	srcFilename := fmt.Sprintf("/usr/lib/tuned/%v/tuned.conf", dir)
+	destFilename := fmt.Sprintf("/etc/keentune/profile/%v.conf", dir)
+
+	if file.IsPathExist(destFilename) {
+		fmt.Printf("%v Profile [%v] already exists.\n",ColorString("red", "[ERROR]"), destFilename)
+		os.Exit(1)
+	}
+
+	if !file.IsPathExist(srcFilename) {
+                fmt.Printf("%v Find the profile [%v] does not exist.\n",ColorString("red", "[ERROR]"), srcFilename)
+		os.Exit(1)
+
+        }
+
+	fpSrc, _ := os.Open(srcFilename)
+	fpDest, _ := os.OpenFile(destFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+
+	defer fpSrc.Close()
+	defer fpDest.Close()
+
+	r := bufio.NewReader(fpSrc)
+	for {
+		buf, err := r.ReadString('\n')
+		if strings.Contains(buf, "[") {
+			buf = strings.Replace(string(buf), ".", "_", 1)
+		}
+
+		//migrate include profile
+		if strings.Contains(buf, "include") && !strings.HasSuffix(strings.TrimSpace(buf), ".conf") {
+			pairs := strings.Split(buf, "=")
+			if len(pairs) != 2 {
+				continue
+			}
+			includeFileName := fmt.Sprintf("/etc/keentune/profile/%v.conf", strings.TrimSpace(pairs[1]))
+
+			if !file.IsPathExist(includeFileName) {
+				changeFileName(strings.TrimSpace(pairs[1]))
+			}
+		}
+
+		//modify script file name
+		replaceStr := "${i:PROFILE_DIR}/script.sh"
+		destStr := fmt.Sprintf("/etc/keentune/script/%v.sh", dir)
+		if strings.Contains(buf, replaceStr) {
+			buf = strings.Replace(buf, replaceStr, destStr, -1)
+		}
+
+		if err != nil{
+			if err == io.EOF{
+				break
+			}
+		}
+		fpDest.WriteString(string(buf))
+	}
+
 }
 
 // confirm Interactive reply on terminal: [true] same as yes; false same as no.

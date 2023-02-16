@@ -134,7 +134,6 @@ func CheckIPValidity(origin []string) ([]string, []string, []string) {
 			valid = append(valid, pureValue)
 			continue
 		}
-
 		invalid = append(invalid, pureValue)
 	}
 

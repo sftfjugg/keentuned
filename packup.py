@@ -33,11 +33,14 @@ def warppingCheck():
         print("Get version: {}-{}".format(version_in_spec, release_in_spec))
         
         dateCheck(spec)
-        
-        if re.search(" - {}-{}".format(version_in_spec, release_in_spec), spec):
+        if int(release_in_spec) <= 0:
+            print("[Failed] release number must be greater than zero!")
+            return 
+
+        if re.search(" - {}".format(version_in_spec), spec):
             print("[OK] check version in changelog at keentuned.spec")
         else:
-            print("[Failed] wrong version number in changelog at keentuned.spec")
+            print("[Failed] wrong version number in changelog of keentuned.spec")
             return
         
     with open(os.path.join(source_dir,"Makefile"), 'r') as f:
@@ -46,15 +49,16 @@ def warppingCheck():
         if re.search(version_in_spec, makefile):
             print("[OK] check version in changelog at Makefile")
         else:
-            print("[Failed] wrong version number in changelog at Makefile")
+            print("[Failed] wrong version number in Makefile")
             return
 
-    print("Start wrap up of keentune-{}-{}".format(version_in_spec, release_in_spec))
-    return version_in_spec, release_in_spec
+    print("Start wrap up of keentune-{}".format(version_in_spec))
+    return version_in_spec
 
 
 if __name__ == "__main__":
-    version_in_spec, _ = warppingCheck()
+    version_in_spec = warppingCheck()
+
     if os.path.exists("keentuned-{}".format(version_in_spec)):
         os.system("rm -rf keentuned-{}".format(version_in_spec))
     

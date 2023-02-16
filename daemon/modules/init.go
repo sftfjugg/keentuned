@@ -190,10 +190,15 @@ func requestInit(requireConf map[string]interface{}, job string) error {
 }
 
 func (tuner *Tuner) rollback() error {
-	return tuner.concurrent("rollback", false)
+	var domains= []string{}
+	tuner.rollbackReq = map[string]interface{}{
+		"domains": domains,
+		"all":     false,
+	}
+	return tuner.concurrent("rollback")
 }
 
-func (tuner *Tuner) concurrent(uri string, needReq bool) error {
+func (tuner *Tuner) concurrent(uri string) error {
 	var sucCount = new(int)
 	var warnCount = new(int)
 	var sucDetail = new(string)
@@ -205,8 +210,11 @@ func (tuner *Tuner) concurrent(uri string, needReq bool) error {
 		go func(i int, wg *sync.WaitGroup) {
 			defer wg.Done()
 			var request interface{}
-			if needReq {
+			switch strings.ToLower(uri) {
+			case "backup":
 				request = tuner.Group[i].MergedParam
+			case "rollback":
+				request = tuner.rollbackReq
 			}
 
 			result, allSuc := tuner.Group[i].concurrentSuccess(uri, request)
@@ -233,10 +241,10 @@ func (tuner *Tuner) concurrent(uri string, needReq bool) error {
 			tuner.backupWarning = retFailureInfo
 			break
 		}
-		
+
 		tuner.backupFailure = retFailureInfo
 		tuner.backupWarning = *warningDetail
-	case "rollback", "original":
+	case "rollback":
 		tuner.rollbackFailure = retFailureInfo
 		if *sucDetail != "" {
 			if *warnCount == len(tuner.Group) {

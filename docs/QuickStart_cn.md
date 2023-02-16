@@ -1,5 +1,5 @@
 # QuickStart
-###### Version: 1.4.0
+###### Version: 2.0.1
 
 ## Dependencies
 安装python3运行环境  
@@ -19,6 +19,7 @@ pip3 install shap==0.40.0
 pip3 install tornado==6.1
 pip3 install xgboost==1.5.2
 pip3 install pynginxconfig==0.3.4
+pip3 install torch
 ```
 
 ## Installation
