@@ -154,7 +154,7 @@ func bindFileToGroup(args []string, setFlag SetFlag) {
 			os.Exit(1)
 		}
 
-		filePath, err := checkProfile(args[0])
+		filePath, err := getProfile(args[0])
 		if err != nil {
 			fmt.Printf("%v %v\n", ColorString("red", "[ERROR]"), err)
 			os.Exit(1)
@@ -176,7 +176,7 @@ func bindFileToGroup(args []string, setFlag SetFlag) {
 				os.Exit(1)
 			}
 
-			filePath, err := checkProfile(v)
+			filePath, err := getProfile(v)
 			if err != nil {
 				fmt.Printf("%v %v\n", ColorString("red", "[ERROR]"), err)
 				os.Exit(1)
@@ -190,23 +190,53 @@ func bindFileToGroup(args []string, setFlag SetFlag) {
 	return
 }
 
-func checkProfile(fileName string) (string, error) {
-	var exactMatch = true
-	fullPath, homeFileList, _ := file.WalkFilePath(config.GetProfileHomePath(""), fileName, exactMatch)
-	dir, _ := path.Split(fileName)
-	// A file with the same name appears and no parent directory is specified
-	if len(homeFileList) > 1 && len(strings.TrimSpace(dir)) == 0 {
-		return "", fmt.Errorf("file '%v' with the same name exists in %v.\n \tPlease specify a more detailed path to execute again", fileName, strings.Join(fullPath, ", "))
+func getProfile(fileName string) (string, error) {
+	var customDir = "custom/"
+	if strings.Contains(fileName, customDir) {
+		fileName = strings.Replace(fileName, customDir, "profile/", 1)
+	}
+
+	err := checkDuplicateProfile(fileName)
+	if err != nil {
+		return "", err
 	}
 
 	filePath := config.GetProfilePath(fileName)
 	if filePath == "" {
-		return "", fmt.Errorf("file '%v' does not exist, expect in '%v' nor in '%v'", fileName,
-			fmt.Sprintf("%s/profile", config.KeenTune.Home),
-			fmt.Sprintf("%s/profile", config.KeenTune.DumpHome))
+		homeDir := fmt.Sprintf("%s/profile", config.KeenTune.Home)
+		workDir := fmt.Sprintf("%s/profile", config.KeenTune.DumpHome)
+		return "", fmt.Errorf("file '%v' does not exist, expect in '%v' or in '%v'", fileName, homeDir, workDir)
 	}
 
 	return filePath, nil
+}
+
+func checkDuplicateProfile(fileName string) error {
+	var fileList, fullPath []string
+	var exactMatch = true
+
+	dir, name := path.Split(fileName)
+	homePath, homeFileList, err := file.WalkFilePath(config.GetProfileHomePath(""), name, exactMatch)
+	if err != nil {
+		return fmt.Errorf("walk profile home path failed %v", err)
+	}
+
+	workPath, workFileList, _ := file.WalkFilePath(config.GetProfileWorkPath(""), name, exactMatch)
+	if err != nil {
+		return fmt.Errorf("walk profile workspace failed %v", err)
+	}
+
+	fullPath = append(fullPath, homePath...)
+	fullPath = append(fullPath, workPath...)
+
+	fileList = append(fileList, homeFileList...)
+	fileList = append(fileList, workFileList...)
+
+	// A file with the same name appears and no parent directory is specified
+	if len(fileList) > 1 && len(strings.TrimSpace(dir)) == 0 {
+		return fmt.Errorf("file '%v' with the same name exists in %v.\n \tPlease specify a more detailed path to execute again", fileName, strings.Join(fullPath, ", "))
+	}
+	return nil
 }
 
 func deleteProfileCmd() *cobra.Command {
@@ -227,26 +257,19 @@ func deleteProfileCmd() *cobra.Command {
 			flag.Name = strings.TrimSuffix(flag.Name, ".conf") + ".conf"
 
 			initWorkDirectory()
-			WorkPath := config.GetProfileWorkPath(flag.Name)
-			_, err := os.Stat(WorkPath)
-			if err == nil {
-				fmt.Printf("%s %s '%s' ?Y(yes)/N(no)", ColorString("yellow", "[Warning]"), deleteTips, flag.Name)
-				if !confirm() {
-					fmt.Println("[-] Give Up Delete")
-					return
-				}
-				RunDeleteRemote(flag)
-			} else {
-				HomePath := config.GetProfileHomePath(flag.Name)
-				_, err = os.Stat(HomePath)
-				if err == nil {
-					fmt.Printf("%v File '%v' is not supported to delete\n", ColorString("red", "[ERROR]"), HomePath)
-				} else {
-					fmt.Printf("%v File '%v' does not exist.\n", ColorString("red", "[ERROR]"), flag.Name)
-				}
+			err := checkDeleteProfile(flag)
+			if err != nil {
+				fmt.Printf("%v %v\n", ColorString("red", "[ERROR]"), err)
 				os.Exit(1)
 			}
 
+			fmt.Printf("%s %s '%s' ?Y(yes)/N(no)", ColorString("yellow", "[Warning]"), deleteTips, flag.Name)
+			if !confirm() {
+				fmt.Println("[-] Give Up Delete")
+				return
+			}
+
+			RunDeleteRemote(flag)
 			return
 		},
 	}
@@ -254,6 +277,19 @@ func deleteProfileCmd() *cobra.Command {
 	cmd.Flags().StringVar(&flag.Name, "name", "", "profile name, query by command \"keentune profile list\"")
 
 	return cmd
+}
+
+func checkDeleteProfile(flag DeleteFlag) error {
+	filePath, err := getProfile(flag.Name)
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(filePath, config.KeenTune.Home) {
+		return fmt.Errorf("File '%v' is not supported to delete", filePath)
+	}
+
+	return nil
 }
 
 func generateCmd() *cobra.Command {
