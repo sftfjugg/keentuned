@@ -135,6 +135,7 @@ func (tuner *Tuner) brainInit() error {
 	requireConf["name"] = tuner.Name
 	requireConf["parameters"] = tuner.BrainParam
 	requireConf["baseline_score"] = tuner.benchScore
+	requireConf["rule_list"] = tuner.ruleList
 
 	tuner.saveBrainInit()
 	start := time.Now()
@@ -190,7 +191,7 @@ func requestInit(requireConf map[string]interface{}, job string) error {
 }
 
 func (tuner *Tuner) rollback() error {
-	var domains= []string{}
+	var domains = []string{}
 	tuner.rollbackReq = map[string]interface{}{
 		"domains": domains,
 		"all":     false,
@@ -281,4 +282,5 @@ func (tuner *Tuner) saveBrainInit() {
 		}
 	}
 }
+
 

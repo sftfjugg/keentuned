@@ -29,7 +29,7 @@ type TuneFlag struct {
 
 // Tune run param tune service
 func (s *Service) Tune(flag TuneFlag, reply *string) error {
-	err := config.CheckAndReloadConf()
+	err := config.ReloadConf()
 	if err != nil {
 		return err
 	}
@@ -124,4 +124,5 @@ func sortBenchItemNames(items map[string]m.ItemDetail) []string {
 	sort.Strings(sortNames)
 	return sortNames
 }
+
 

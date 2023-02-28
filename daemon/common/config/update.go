@@ -31,7 +31,7 @@ func UpdateKeentunedConf(info string) (string, error) {
 
 	if strings.Contains(info, "-group-") {
 		compareCfg(cfg, usrCfg)
-		
+
 		err = checkInitGroup(cfg)
 		if err != nil {
 			return "", err
@@ -146,8 +146,8 @@ func checkInitGroup(cfg *ini.File) error {
 	return nil
 }
 
-// reloadConf ...
-func reloadConf() error {
+// ReloadConf ...
+func ReloadConf() error {
 	var mutex = &sync.RWMutex{}
 	mutex.Lock()
 	defer mutex.Unlock()
@@ -167,7 +167,7 @@ func CheckAndReloadConf() error {
 	md5Hash := GetKeenTuneConfFileMD5()
 	if KeenTuneConfMD5 != md5Hash {
 		KeenTuneConfMD5 = md5Hash
-		err := reloadConf()
+		err := ReloadConf()
 		if err != nil {
 			return fmt.Errorf("reload conf failed: %v", err)
 		}
@@ -191,4 +191,5 @@ func GetRerunConf(jobConf string) (map[string]interface{}, error) {
 
 	return retConf, nil
 }
+
 

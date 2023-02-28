@@ -73,6 +73,7 @@ type BenchGroup struct {
 // Group ...
 type Group struct {
 	ParamMap  []DBLMap
+	RuleList  [][3]string
 	ParamConf string
 	IPs       []string
 	Port      string
@@ -241,7 +242,7 @@ func (c *KeentunedConf) getTargetGroup(cfg *ini.File) error {
 		group.ParamConf = target.Key("PARAMETER").MustString("sysctl.json")
 		paramFiles := strings.Split(group.ParamConf, ",")
 
-		_, group.ParamMap, err = checkParamConf(paramFiles)
+		group.RuleList, group.ParamMap, err = checkParamConf(paramFiles, groupNo)
 		if err != nil {
 			return err
 		}
@@ -474,6 +475,5 @@ func GetJobParamConfig(job string) (string, string, error) {
 
 	return strings.TrimSuffix(parameterConf, "\n"), benchConf, nil
 }
-
 
 

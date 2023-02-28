@@ -51,6 +51,8 @@ func (tuner *Tuner) initParams() error {
 		target.GroupNo = group.GroupNo
 		target.mergeParam()
 
+		tuner.ruleList = append(tuner.ruleList, group.RuleList...)
+
 		var updateIP = make(map[string]bool)
 		for i := 0; i < len(target.IPs); i++ {
 			if i == 0 {

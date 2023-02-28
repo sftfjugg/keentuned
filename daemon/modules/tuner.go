@@ -43,6 +43,7 @@ type Tuner struct {
 	Group         []Group
 	BrainParam    []Parameter
 	ReadConfigure bool
+	ruleList      [][3]string
 	implyDetail
 	bestInfo    Configuration
 	allowUpdate bool
@@ -327,4 +328,5 @@ func (tuner *Tuner) deleteUnAVLParams() {
 		}
 	}
 }
+
 

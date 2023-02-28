@@ -172,13 +172,14 @@ func parse2Float(origin map[string]interface{}, key string) (float32, error) {
 	return float32(val), nil
 }
 
-func checkParamConf(confs []string) (map[string]string, []DBLMap, error) {
+func checkParamConf(confs []string, groupNo int) ([][3]string, []DBLMap, error) {
 	if len(confs) == 0 {
 		return nil, nil, fmt.Errorf("param file suffix is not json, param name is needed")
 	}
 
 	var domains = make(map[string]string)
 	var mergedParam = make([]DBLMap, PRILevel)
+	var retRules [][3]string
 	for _, conf := range confs {
 		fileName := strings.Trim(conf, " ")
 		if !strings.HasSuffix(fileName, ".json") {
@@ -190,10 +191,12 @@ func checkParamConf(confs []string) (map[string]string, []DBLMap, error) {
 			return nil, nil, fmt.Errorf("param file [%v] does not exist", fileName)
 		}
 
-		userParamMap, err := readFile(paramConf)
+		rules, userParamMap, err := readFile(paramConf, groupNo)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		retRules = append(retRules, rules...)
 
 		err = readParams(domains, userParamMap, mergedParam)
 		if err != nil {
@@ -201,41 +204,61 @@ func checkParamConf(confs []string) (map[string]string, []DBLMap, error) {
 		}
 	}
 
-	return domains, mergedParam, nil
+	return retRules, mergedParam, nil
 }
 
-func readFile(fileName string) (DBLMap, error) {
+func readFile(fileName string, groupNo int) ([][3]string, DBLMap, error) {
 	bytes, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("read [%v] file:%v\n", fileName, err)
+		return nil, nil, fmt.Errorf("read [%v] file:%v\n", fileName, err)
 	}
 
 	if len(bytes) == 0 {
-		return nil, fmt.Errorf("file is empty")
-	}
-
-	var retMap DBLMap
-	err = json.Unmarshal(bytes, &retMap)
-	if err == nil && len(retMap) != 0 {
-		return retMap, nil
+		return nil, nil, fmt.Errorf("file is empty")
 	}
 
 	var paramMap map[string]interface{}
 	err = json.Unmarshal(bytes, &paramMap)
 	if err != nil {
-		return nil, fmt.Errorf("Unmarshal err: %v", err)
+		return nil, nil, fmt.Errorf("Unmarshal err: %v", err)
 	}
 
 	var domains []string
-	for domain, _ := range paramMap {
-		domains = append(domains, domain)
+	var rules [][3]string
+	var paramNames = make(map[string]bool)
+	var retParams = make(DBLMap)
+	paramFmt := "{\"domain\":{\"param1\":{\"dtype\":\"string\",\"options\":[\"0\",\"1\"]}}}"
+	for domain, params := range paramMap {
+		switch param := params.(type) {
+		case map[string]interface{}:
+			retParams[domain] = param
+			domains = append(domains, domain)
+			for key := range param {
+				paramNames[key] = true
+			}
+		case [][3]string:
+			rules = param
+		default:
+			return nil, nil, fmt.Errorf("param type is %v, expect rules array [][3]string or map like: %v", param, paramFmt)
+		}
+	}
+
+	for idx, rule := range rules {
+		for i := 0; i < 2; i++ {
+			exist := paramNames[rule[i]]
+			if !exist {
+				return nil, nil, fmt.Errorf("rule name '%v' is not found in param list", rule[i])
+			}
+			rules[idx][i] = fmt.Sprintf("%v@group-%v", rule[i], groupNo)
+		}
+
 	}
 
 	if len(domains) == 0 {
-		return nil, fmt.Errorf("assert domain does not exist")
+		return nil, nil, fmt.Errorf("assert domain is empty")
 	}
 
-	return nil, fmt.Errorf("assert domain %v value is not matched, such as: {\"domain\":{\"param1\":{\"dtype\":\"string\",\"options\":[\"0\",\"1\"]}}}", domains[0])
+	return rules, retParams, nil
 }
 
 func readParams(domains map[string]string, userParamMap DBLMap, mergedParam []DBLMap) error {
@@ -395,4 +418,5 @@ func GetKeenTuneConfFileMD5() string {
 
 	return string(dst)
 }
+
 
