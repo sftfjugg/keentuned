@@ -135,6 +135,11 @@ func (tuner *Tuner) brainInit() error {
 	requireConf["name"] = tuner.Name
 	requireConf["parameters"] = tuner.BrainParam
 	requireConf["baseline_score"] = tuner.benchScore
+
+	if tuner.ruleList == nil {
+		tuner.ruleList = make([][3]string, 0)
+	}
+
 	requireConf["rule_list"] = tuner.ruleList
 
 	tuner.saveBrainInit()
