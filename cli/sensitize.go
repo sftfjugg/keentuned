@@ -73,7 +73,7 @@ func trainCmd() *cobra.Command {
 
 	flags := cmd.Flags()
 	flags.StringVarP(&trainflags.Data, "data", "d", "", "available sensitivity identification data, query by \"keentune sensitize jobs\"")
-	flags.IntVarP(&trainflags.Trials, "trials", "t", 1, "sensitize trials, range [1,10]")
+	flags.IntVarP(&trainflags.Trials, "trials", "t", 3, "sensitize trials, range [1,10]")
 	flags.StringVarP(&trainflags.Job, "job", "j", "", "job file of sensitive parameter identification and explanation")
 
 	return cmd
