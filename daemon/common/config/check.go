@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/utils"
+	"reflect"
 	"strings"
 )
 
@@ -179,7 +180,7 @@ func checkParamConf(confs []string, groupNo int) ([][3]string, []DBLMap, error) 
 
 	var domains = make(map[string]string)
 	var mergedParam = make([]DBLMap, PRILevel)
-	var retRules [][3]string
+	var retRules = make([][3]string, 0)
 	for _, conf := range confs {
 		fileName := strings.Trim(conf, " ")
 		if !strings.HasSuffix(fileName, ".json") {
@@ -224,7 +225,7 @@ func readFile(fileName string, groupNo int) ([][3]string, DBLMap, error) {
 	}
 
 	var domains []string
-	var rules [][3]string
+	var rules = make([][3]string, 0)
 	var paramNames = make(map[string]bool)
 	var retParams = make(DBLMap)
 	paramFmt := "{\"domain\":{\"param1\":{\"dtype\":\"string\",\"options\":[\"0\",\"1\"]}}}"
@@ -236,15 +237,21 @@ func readFile(fileName string, groupNo int) ([][3]string, DBLMap, error) {
 			for key := range param {
 				paramNames[key] = true
 			}
-		case [][3]string:
-			rules = param
+		case []interface{}:
+			err = parseRules(param, &rules)
+			if err != nil {
+				return nil, nil, err
+			}
+
 		default:
-			return nil, nil, fmt.Errorf("param type is %v, expect rules array [][3]string or map like: %v", param, paramFmt)
+			return nil, nil, fmt.Errorf("param type is %v, expect rules array [][3]string or map like: %v",
+				reflect.TypeOf(param),
+				paramFmt)
 		}
 	}
 
 	for idx, rule := range rules {
-		for i := 0; i < 2; i++ {
+		for i := 0; i < len(rule)-1; i++ {
 			exist := paramNames[rule[i]]
 			if !exist {
 				return nil, nil, fmt.Errorf("rule name '%v' is not found in param list", rule[i])
@@ -259,6 +266,32 @@ func readFile(fileName string, groupNo int) ([][3]string, DBLMap, error) {
 	}
 
 	return rules, retParams, nil
+}
+
+func parseRules(param []interface{}, rules *[][3]string) error {
+	for _, originRules := range param {
+		rulesArgs, assertOK := originRules.([]interface{})
+		if !assertOK {
+			return fmt.Errorf("'%v' type %v is not ok, expect []interface{}]", originRules, reflect.TypeOf(originRules))
+		}
+
+		if len(rulesArgs) != 3 {
+			return fmt.Errorf("rule '%v' length is %v, expect 3", originRules, len(rulesArgs))
+		}
+
+		var rule [3]string
+		for idx, ruleArgs := range rulesArgs {
+			arg, assertOK := ruleArgs.(string)
+			if !assertOK {
+				return fmt.Errorf("'%v' rules is not a string", ruleArgs)
+			}
+
+			rule[idx] = arg
+		}
+		*rules = append(*rules, rule)
+	}
+
+	return nil
 }
 
 func readParams(domains map[string]string, userParamMap DBLMap, mergedParam []DBLMap) error {

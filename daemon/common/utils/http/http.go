@@ -50,17 +50,22 @@ func newRequester(method string, uri string, data interface{}) (*requester, erro
 		}, nil
 	}
 
-	bytesData, err := json.Marshal(data)
+	// Avoid escaping special characters such as "<" and ">"
+	bf := bytes.NewBuffer([]byte{})
+	jsonEncoder := json.NewEncoder(bf)
+	jsonEncoder.SetEscapeHTML(false)
+	err := jsonEncoder.Encode(data)
+
 	if err != nil {
 		fmt.Printf("[newRequester] error in Unexpected type %T\n", data)
 		return nil, err
 	}
 
-	log.Debugf("", "[%v] request info [%+v]", url, string(bytesData))
+	log.Debugf("", "[%v] request info [%+v]", url, bf.String())
 	return &requester{
 		client: client,
 		url:    url,
-		body:   bytesData,
+		body:   bf.Bytes(),
 		method: method,
 	}, nil
 }
