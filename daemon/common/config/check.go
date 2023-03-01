@@ -8,6 +8,7 @@ import (
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/utils"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -173,9 +174,9 @@ func parse2Float(origin map[string]interface{}, key string) (float32, error) {
 	return float32(val), nil
 }
 
-func checkParamConf(confs []string, groupNo int) ([][3]string, []DBLMap, error) {
+func checkParamConf(confs []string, groupNo int, group *Group) error {
 	if len(confs) == 0 {
-		return nil, nil, fmt.Errorf("param file suffix is not json, param name is needed")
+		return fmt.Errorf("param file suffix is not json, param name is needed")
 	}
 
 	var domains = make(map[string]string)
@@ -184,28 +185,37 @@ func checkParamConf(confs []string, groupNo int) ([][3]string, []DBLMap, error) 
 	for _, conf := range confs {
 		fileName := strings.Trim(conf, " ")
 		if !strings.HasSuffix(fileName, ".json") {
-			return nil, nil, fmt.Errorf("param file suffix is not json")
+			return fmt.Errorf("param file suffix is not json")
 		}
 
 		paramConf := GetAbsolutePath(fileName, "parameter", ".json", "_best.json")
 		if !file.IsPathExist(paramConf) {
-			return nil, nil, fmt.Errorf("param file [%v] does not exist", fileName)
+			return fmt.Errorf("param file [%v] does not exist", fileName)
 		}
 
 		rules, userParamMap, err := readFile(paramConf, groupNo)
 		if err != nil {
-			return nil, nil, err
+			return err
 		}
 
 		retRules = append(retRules, rules...)
 
 		err = readParams(domains, userParamMap, mergedParam)
 		if err != nil {
-			return nil, nil, fmt.Errorf("check %v file: %v", fileName, err)
+			return fmt.Errorf("check %v file: %v", fileName, err)
 		}
 	}
 
-	return retRules, mergedParam, nil
+	group.RuleList = retRules
+	group.ParamMap = mergedParam
+
+	for domain := range domains {
+		group.Domains = append(group.Domains, domain)
+	}
+
+	sort.Strings(group.Domains)
+
+	return nil
 }
 
 func readFile(fileName string, groupNo int) ([][3]string, DBLMap, error) {
