@@ -1,0 +1,85 @@
+{
+    "sysctl": {
+      "kernel.sched_min_granularity_ns":{
+            "desc":"默认值:10000000",
+            "dtype":"int",
+            "range":[
+                5000000,
+                600000000
+            ]
+        },
+      "kernel.sched_wakeup_granularity_ns":{
+            "desc":"默认值:15000000",
+            "dtype":"int",
+            "range":[
+                30000,
+                30000000
+            ]
+        },
+      "kernel.sched_latency_ns":{
+            "desc":"默认值:24000000",
+            "dtype":"int",
+            "range":[
+                200000,
+                50000000
+            ]
+        }
+    },
+
+    "specjbb_jvm": {
+      "MaxInlineSize": {
+        "desc": "默认值:35",
+        "dtype": "int",
+	"range": [
+		0,
+		2000
+	]
+
+      },
+      "FreqInlineSize": {
+        "desc": "默认值:325",
+        "dtype": "int",
+	"range": [
+		0,
+		2000
+	]
+
+      },
+      "InlineSmallCode": {
+        "desc": "默认值:2500",
+        "dtype": "int",
+        "range": [
+		0,
+		8000
+	]
+      }
+    },
+      "Dspecjbb.forkjoin.workers.Tier1": {
+        "desc": "默认值:64",
+        "dtype": "int",
+        "range": [
+                64,
+                128
+        ]
+
+      },
+      "Dspecjbb.forkjoin.workers.Tier2": {
+        "desc": "默认值:64",
+        "dtype": "int",
+        "range": [
+                4,
+                64
+        ]
+
+      },
+      "Dspecjbb.forkjoin.workers.Tier3": {
+        "desc": "默认值:64",
+        "dtype": "int",
+        "range": [
+                16,
+                64
+        ]
+      }
+
+}
+
