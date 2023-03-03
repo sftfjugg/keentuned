@@ -8,7 +8,9 @@ import (
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
 	"os"
+	"sort"
 	"strings"
+	"sync"
 )
 
 // Setter ...
@@ -81,7 +83,7 @@ func (tuner *Tuner) showReco() {
 	if len(tuner.initWarning) > 0 {
 		tuner.showPrefixReco()
 
-		for _, preWarning := range strings.Split(tuner.initWarning, multiRecordSeparator) {
+		for _, preWarning := range strings.Split(tuner.initWarning, multiSeparator) {
 			pureInfo := strings.TrimSpace(preWarning)
 			if len(pureInfo) > 0 {
 				log.Warn(log.ProfSet, preWarning)
@@ -138,7 +140,7 @@ func (tuner *Tuner) prepareBeforeSet() error {
 	err = tuner.backup()
 	if tuner.backupWarning != "" {
 		tuner.showPrefixReco()
-		for _, backupWarning := range strings.Split(tuner.backupWarning, multiRecordSeparator) {
+		for _, backupWarning := range strings.Split(tuner.backupWarning, multiSeparator) {
 			pureInfo := strings.TrimSpace(backupWarning)
 			if len(pureInfo) > 0 {
 				log.Warn(tuner.logName, backupWarning)
@@ -168,7 +170,7 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0], ip)
 	colorWarn := utils.ColorString("yellow", "[Warning]")
 	if abn.Recommend != "" {
-		recs := strings.Split(abn.Recommend, multiRecordSeparator)
+		recs := strings.Split(abn.Recommend, multiSeparator)
 		for _, rec := range recs {
 			if strings.TrimSpace(rec) != "" {
 				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, rec)
@@ -177,7 +179,7 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	}
 
 	if abn.Warning != "" {
-		warns := strings.Split(abn.Warning, multiRecordSeparator)
+		warns := strings.Split(abn.Warning, multiSeparator)
 		for _, warn := range warns {
 			if strings.TrimSpace(warn) != "" {
 				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, warn)
@@ -190,13 +192,18 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	}
 
 	port := tuner.Group[0].Port
-	ipIndex := config.KeenTune.IPMap[ip] * 2
 	host := fmt.Sprintf("%v:%v", ip, port)
-	tuner.updateGroup(param)
+	var snDomains = &sync.Map{}
+	tuner.Group[0].Domains, err = InitDomain(host, param, snDomains, &abn)
+	if err != nil {
+		return recommend, "", err
+	}
+
+	tuner.updateGroup(param, snDomains)
 
 	err = tuner.prepareBeforeSet()
 	if tuner.backupWarning != "" {
-		for _, backupWarning := range strings.Split(tuner.backupWarning, multiRecordSeparator) {
+		for _, backupWarning := range strings.Split(tuner.backupWarning, multiSeparator) {
 			if strings.TrimSpace(backupWarning) != "" {
 				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, backupWarning)
 			}
@@ -207,12 +214,19 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 		return recommend, "", err
 	}
 
-	reqParam := tuner.Group[0].Params[0]
-	reqBody := tuner.Group[0].applyReq(ip, reqParam, ipIndex)
-	ret, err := Configure(reqBody, host, ipIndex)
+	var result string
+	ipIndex := config.KeenTune.IPMap[ip] * 2
+	for _, reqParam := range tuner.Group[0].Params {
+		if reqParam == nil {
+			continue
+		}
+		reqBody := tuner.Group[0].applyReq(ip, reqParam, ipIndex)
+		ret, err := Configure(reqBody, host, ipIndex)
 
-	if err != nil {
-		return recommend, ret, err
+		if err != nil {
+			return recommend, ret, err
+		}
+		result += ret
 	}
 
 	activeFile := config.GetProfileWorkPath("active.conf")
@@ -220,16 +234,52 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	name := file.GetPlainName(tuner.Setter.ConfFile[0])
 	fileSet += fmt.Sprintf("%s,%s\n", name, ip)
 	UpdateActiveFile(activeFile, []byte(fileSet))
-	return recommend, ret, nil
+	return recommend, result, nil
 }
 
-func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}) {
+// InitDomain ...
+func InitDomain(host string, param map[string]map[string]interface{}, snDomains *sync.Map, abn *ABNLResult) ([]string, error) {
+
+	var domains []string
+	for domain := range param {
+		domains = append(domains, domain)
+	}
+
+	sort.Strings(domains)
+
+	req := map[string]interface{}{
+		"domain_list": domains,
+		"backup_all":  config.KeenTune.BackupAll,
+	}
+
+	initResult, err := initDomain(host, req, snDomains)
+	abn.Warning += initResult
+	if err != nil {
+		return domains, err
+	}
+
+	return domains, nil
+}
+
+func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}, snDomains *sync.Map) {
 	gp := new(Group)
 	gp.ReadOnly = false
-	gp.Params = []config.DBLMap{param}
-	gp.mergeParam()
+	gp.Domains = tuner.Group[0].Domains
+	gp.updateDomains(snDomains)
+
+	for domain := range param {
+		_, find := gp.deleteDomain[domain]
+		if find {
+			delete(param, domain)
+		}
+	}
+
+	gp.Params, _ = config.GetPriorityParams(param)
+
 	gp.IPs = tuner.Group[0].IPs
 	gp.Port = tuner.Group[0].Port
+
+	gp.mergeParam()
 	tuner.Group[0] = *gp
 }
 

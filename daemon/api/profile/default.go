@@ -2,7 +2,6 @@ package profile
 
 import (
 	"fmt"
-	com "keentune/daemon/api/common"
 	"keentune/daemon/common/config"
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
@@ -11,7 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"time"
 )
 
 type setVars struct {
@@ -54,14 +52,6 @@ func SetDefault() () {
 func setConfigure(setter setVars) {
 	defer setter.wg.Done()
 
-	for {
-		domains, err := com.GetAVLDomain(setter.ip, setter.target.Port)
-		if err == nil && len(domains) > 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
 	var tuner = &m.Tuner{}
 
 	recConf, find := getSuitableConf(setter, tuner)
@@ -83,6 +73,10 @@ func setConfigure(setter setVars) {
 	}
 
 	if err != nil {
+		if result != "" {
+			err = fmt.Errorf(result)
+		}
+
 		log.Errorf("", "'%v' set default '%v' err %v", setter.ip, recConf, err)
 		return
 	}
