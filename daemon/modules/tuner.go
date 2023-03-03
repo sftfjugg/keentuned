@@ -320,7 +320,7 @@ func (tuner *Tuner) deleteUnAVLParams() {
 	tuner.BrainParam = newBrainParams
 
 	if tuner.backupWarning != "" {
-		for _, backupWarning := range strings.Split(tuner.backupWarning, multiRecordSeparator) {
+		for _, backupWarning := range strings.Split(tuner.backupWarning, multiSeparator) {
 			pureInfo := strings.TrimSpace(backupWarning)
 			if len(pureInfo) > 0 {
 				log.Warn(tuner.logName, backupWarning)

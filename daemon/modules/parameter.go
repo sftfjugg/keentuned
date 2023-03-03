@@ -341,18 +341,18 @@ func parseConfStrToMapSlice(replacedStr, fileName string, abnormal *ABNLResult, 
 			deleteDomain = commonDomain
 			if commonDomain == myConfDomain {
 				notMetInfo := fmt.Sprintf(detectENVNotMetFmt, commonDomain, myConfCondition, file.GetPlainName(fileName))
-				abnormal.Warning += fmt.Sprintf("%v%v", notMetInfo, multiRecordSeparator)
+				abnormal.Warning += fmt.Sprintf("%v%v", notMetInfo, multiSeparator)
 				continue
 			}
 
 			notMetInfo := fmt.Sprintf(detectENVNotMetFmt, commonDomain, condition, file.GetPlainName(fileName))
-			abnormal.Warning += fmt.Sprintf("%v%v", notMetInfo, multiRecordSeparator)
+			abnormal.Warning += fmt.Sprintf("%v%v", notMetInfo, multiSeparator)
 
 			continue
 		}
 
 		if err != nil {
-			abnormal.Warning += fmt.Sprintf("content '%v' abnormal%v", pureLine, multiRecordSeparator)
+			abnormal.Warning += fmt.Sprintf("content '%v' abnormal%v", pureLine, multiSeparator)
 			continue
 		}
 
@@ -427,7 +427,7 @@ func parseIncludeConf(pureLine string, abnormal *ABNLResult, ip ...string) map[s
 	includeFile := fmt.Sprintf("%v.conf", strings.TrimSuffix(strings.TrimSpace(pairs[1]), ".conf"))
 	includeInfo, err := readConfFile(config.GetProfileHomePath(includeFile))
 	if err != nil {
-		abnormal.Warning += fmt.Sprintf("Read include file '%v' failed%v", pairs[1], multiRecordSeparator)
+		abnormal.Warning += fmt.Sprintf("Read include file '%v' failed%v", pairs[1], multiSeparator)
 		return nil
 	}
 

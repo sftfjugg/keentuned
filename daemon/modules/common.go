@@ -21,7 +21,7 @@ const (
 	FAILED
 )
 
-const multiRecordSeparator = "*#++#*"
+const multiSeparator = "*#++#*"
 
 // backup doesn't exist
 const (
@@ -225,12 +225,11 @@ func parseMsg(originMsg interface{}) string {
 }
 
 func (tuner *Tuner) original() error {
-	var domains []string
 	tuner.rollbackReq = map[string]interface{}{
-		"domains": domains,
+		"domains": []string{},
 		"all":     true,
 	}
-	return tuner.concurrent("rollback")
+	return tuner.concurrent("rollbackall")
 }
 
 

@@ -196,11 +196,6 @@ func requestInit(requireConf map[string]interface{}, job string) error {
 }
 
 func (tuner *Tuner) rollback() error {
-	var domains = []string{}
-	tuner.rollbackReq = map[string]interface{}{
-		"domains": domains,
-		"all":     false,
-	}
 	return tuner.concurrent("rollback")
 }
 
@@ -219,8 +214,13 @@ func (tuner *Tuner) concurrent(uri string) error {
 			switch strings.ToLower(uri) {
 			case "backup":
 				request = tuner.Group[i].MergedParam
-			case "rollback":
+			case "rollbackall":
 				request = tuner.rollbackReq
+			case "rollback":
+				request = map[string]interface{}{
+					"domains": tuner.Group[i].Domains,
+					"all":     false,
+				}
 			}
 
 			result, allSuc := tuner.Group[i].concurrentSuccess(uri, request)
