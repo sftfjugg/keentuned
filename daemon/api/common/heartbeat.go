@@ -107,7 +107,7 @@ func IsTargetOffline(clientName *string) bool {
 
 	for _, group := range config.KeenTune.Group {
 		for index, ip := range group.IPs {
-			_, err := GetAVLDomain(ip, group.Port)
+			err := GetStatus(ip, group.Port)
 			if err != nil {
 				*clientName += fmt.Sprintf("target-group[%v] %v, ", group.GroupNo, index+1)
 				offline = true
@@ -198,15 +198,11 @@ func checkTarget(domains, warningInfo *[]string, okInfo *string) {
 	for _, tg := range config.KeenTune.Group {
 		var okIPs []string
 		for _, ip := range tg.IPs {
-			received, err := GetAVLDomain(ip, tg.Port)
+			err := GetStatus(ip, tg.Port)
 			if err != nil {
 				warning := fmt.Sprintf("target-group[%v] offline: %v\n", tg.GroupNo, ip)
 				*warningInfo = append(*warningInfo, warning)
 				continue
-			}
-
-			if len(received) > 0 {
-				*domains = received
 			}
 
 			okIPs = append(okIPs, ip)
@@ -252,7 +248,7 @@ func IsSetTargetOffline(group []bool, clientName *string) bool {
 		}
 
 		for _, ip := range config.KeenTune.Group[i].IPs {
-			_, err := GetAVLDomain(ip, config.KeenTune.Group[i].Port)
+			err := GetStatus(ip, config.KeenTune.Group[i].Port)
 			if err != nil {
 				*clientName += fmt.Sprintf("target-group[%v] %v, ", config.KeenTune.Group[i].GroupNo, ip)
 				offline = true
@@ -273,4 +269,5 @@ func CheckBrainClient() error {
 	go monitorClientStatus(IsBrainOffline, clientName, nil)
 	return nil
 }
+
 

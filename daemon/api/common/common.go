@@ -66,7 +66,7 @@ func IsDataReady(name string) bool {
 
 // GetAVLDataAndAlgo get available data, algo from brain
 func GetAVLDataAndAlgo() ([]string, []string, []string, error) {
-	resp, err := pingAndCallAVL(config.KeenTune.BrainIP, config.KeenTune.BrainPort)
+	resp, err := pingAndConnect(config.KeenTune.BrainIP, config.KeenTune.BrainPort, "avaliable")
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -276,7 +276,7 @@ func ResetJob() {
 
 // GetAVLDomain get available domain
 func GetAVLDomain(ip, port string) ([]string, error) {
-	resp, err := pingAndCallAVL(ip, port)
+	resp, err := pingAndConnect(ip, port, "avaliable")
 	if err != nil {
 		return nil, err
 	}
@@ -293,13 +293,36 @@ func GetAVLDomain(ip, port string) ([]string, error) {
 	return ret.Domains, nil
 }
 
-func pingAndCallAVL(ip, port string, request ...interface{}) ([]byte, error) {
+// GetStatus get status
+func GetStatus(ip, port string) error {
+	resp, err := pingAndConnect(ip, port, "status")
+	if err != nil {
+		return err
+	}
+
+	var ret struct {
+		Status string `json:"status"`
+	}
+
+	err = json.Unmarshal(resp, &ret)
+	if err != nil {
+		return err
+	}
+
+	if ret.Status != "alive" {
+		return fmt.Errorf("offline")
+	}
+
+	return nil
+}
+
+func pingAndConnect(ip, port, uri string, request ...interface{}) ([]byte, error) {
 	err := utils.Ping(ip, port)
 	if err != nil {
 		return nil, err
 	}
 
-	url := fmt.Sprintf("%v:%v/avaliable", ip, port)
+	url := fmt.Sprintf("%v:%v/%v", ip, port, uri)
 	if request == nil {
 		return utilhttp.RemoteCall("GET", url, nil)
 	}
@@ -317,7 +340,7 @@ func GetAVLAgentAddr(ip, port, agent string) (bool, bool, error) {
 		"agent_address": agent,
 	}
 
-	resp, err := pingAndCallAVL(ip, port, request)
+	resp, err := pingAndConnect(ip, port, "avaliable", request)
 	if err != nil {
 		return false, false, fmt.Errorf("\tbench source %v offline\n", ip)
 	}
@@ -335,4 +358,5 @@ func GetAVLAgentAddr(ip, port, agent string) (bool, bool, error) {
 
 	return true, false, fmt.Errorf("\tbench destination %v unreachable\n", agent)
 }
+
 
