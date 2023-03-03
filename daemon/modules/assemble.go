@@ -27,6 +27,7 @@ type Group struct {
 	ParamTotal     int
 	ProfileSetFlag bool
 	UnAVLParams    map[string]map[string]string // un available params
+	Domains        []string
 }
 
 const brainNameParts = 2
@@ -49,6 +50,7 @@ func (tuner *Tuner) initParams() error {
 		target.Port = group.Port
 		target.GroupName = group.GroupName
 		target.GroupNo = group.GroupNo
+		target.Domains = group.Domains
 		target.mergeParam()
 
 		tuner.ruleList = append(tuner.ruleList, group.RuleList...)

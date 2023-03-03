@@ -51,9 +51,10 @@ type Default struct {
 	VersionConf string `ini:"VERSION_NUM"`
 
 	// benchmark round ...
-	BaseRound  int `ini:"BASELINE_BENCH_ROUND"`
-	ExecRound  int `ini:"TUNING_BENCH_ROUND"`
-	AfterRound int `ini:"RECHECK_BENCH_ROUND"`
+	BaseRound  int  `ini:"BASELINE_BENCH_ROUND"`
+	ExecRound  int  `ini:"TUNING_BENCH_ROUND"`
+	AfterRound int  `ini:"RECHECK_BENCH_ROUND"`
+	BackupAll  bool `ini:"BACKUP_ALL"`
 }
 
 // Bench ...
@@ -79,6 +80,7 @@ type Group struct {
 	Port      string
 	GroupName string // target-group-x
 	GroupNo   int    // No. x of target-group-x
+	Domains   []string
 }
 
 // Target ...
@@ -199,6 +201,7 @@ func (c *KeentunedConf) getDefault(cfg *ini.File) {
 	c.BaseDump = keentune.Key("DUMP_BASELINE_CONFIGURATION").MustBool(false)
 	c.ExecDump = keentune.Key("DUMP_TUNING_CONFIGURATION").MustBool(false)
 	c.BestDump = keentune.Key("DUMP_BEST_CONFIGURATION").MustBool(false)
+	c.BackupAll = keentune.Key("BACKUP_ALL").MustBool(false)
 	c.DumpHome = keentune.Key("DUMP_HOME").MustString("")
 	c.VersionConf = keentune.Key("VERSION_NUM").MustString("")
 
@@ -242,7 +245,7 @@ func (c *KeentunedConf) getTargetGroup(cfg *ini.File) error {
 		group.ParamConf = target.Key("PARAMETER").MustString("sysctl.json")
 		paramFiles := strings.Split(group.ParamConf, ",")
 
-		group.RuleList, group.ParamMap, err = checkParamConf(paramFiles, groupNo)
+		err = checkParamConf(paramFiles, groupNo, &group)
 		if err != nil {
 			return err
 		}
