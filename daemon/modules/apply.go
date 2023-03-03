@@ -19,6 +19,7 @@ type request struct {
 	groupID int
 	ipIndex int // id of ip in total targets
 	body    interface{}
+	host    string
 }
 
 func (tuner *Tuner) getConfigure() error {

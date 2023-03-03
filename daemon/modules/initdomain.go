@@ -14,7 +14,7 @@ const (
 	warnFlag = "WARNING"
 )
 
-func initDomain(host string, req interface{}) (string, error) {
+func initDomain(host string, req interface{}, domains *sync.Map) (string, error) {
 	url := fmt.Sprintf("%v/init", host)
 	resp, err := http.RemoteCall("POST", url, req)
 	if err != nil {
@@ -39,11 +39,13 @@ func initDomain(host string, req interface{}) (string, error) {
 		if val.Success {
 			continue
 		}
+
+		domains.Store(domain, true)
 		failureNum++
-		failedInfo += fmt.Sprintf("'%v' init failed, %v;", domain, val.Msg)
+		failedInfo += fmt.Sprintf("'%v' init failed, %v%v", domain, val.Msg, multiSeparator)
 	}
 
-	failedInfo = strings.TrimSuffix(failedInfo, ";")
+	failedInfo = strings.TrimSuffix(failedInfo, multiSeparator)
 
 	if total == failureNum {
 		return failedInfo, fmt.Errorf("init all domain failed")
@@ -52,25 +54,27 @@ func initDomain(host string, req interface{}) (string, error) {
 	return failedInfo, nil
 }
 
-func (tuner *Tuner) initDomain() ([]string, error) {
-	wg := sync.WaitGroup{}
-	var initResults = make([]string, len(config.KeenTune.IPMap))
-	for _, group := range tuner.Group {
-		for _, ip := range group.IPs {
-			wg.Add(1)
-			req := request{
-				ip:      ip,
-				ipIndex: config.KeenTune.IPMap[ip] - 1,
-				body: map[string]interface{}{
-					"domain_list": group.Domains,
-					"backup_all":  config.KeenTune.BackupAll,
-				},
-			}
+func (gp *Group) initDomain() ([]string, error) {
+	var (
+		snDomains   = &sync.Map{}
+		wg          = sync.WaitGroup{}
+		initResults = make([]string, len(config.KeenTune.IPMap))
+	)
 
-			host := fmt.Sprintf("%v:%v", ip, group.Port)
-
-			go doInitDomain(initResults, host, req, &wg)
+	for _, ip := range gp.IPs {
+		wg.Add(1)
+		host := fmt.Sprintf("%v:%v", ip, gp.Port)
+		req := request{
+			ip:      ip,
+			host:    host,
+			ipIndex: config.KeenTune.IPMap[ip] - 1,
+			body: map[string]interface{}{
+				"domain_list": gp.Domains,
+				"backup_all":  config.KeenTune.BackupAll,
+			},
 		}
+
+		go doInitDomain(initResults, req, &wg, snDomains)
 	}
 
 	wg.Wait()
@@ -86,12 +90,14 @@ func (tuner *Tuner) initDomain() ([]string, error) {
 		initResults[idx] = strings.TrimPrefix(initResults[idx], warnFlag)
 	}
 
+	gp.updateDomains(snDomains)
+
 	return initResults, err
 }
 
-func doInitDomain(results []string, host string, req request, w *sync.WaitGroup) {
+func doInitDomain(results []string, req request, w *sync.WaitGroup, domains *sync.Map) {
 	defer w.Done()
-	result, err := initDomain(host, req.body)
+	result, err := initDomain(req.host, req.body, domains)
 	if err != nil {
 		results[req.ipIndex] = fmt.Sprintf("%v %v %v", errFlag, req.ip, result)
 		return

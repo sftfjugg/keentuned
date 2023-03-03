@@ -9,8 +9,10 @@ import (
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Group ...
@@ -28,6 +30,7 @@ type Group struct {
 	ProfileSetFlag bool
 	UnAVLParams    map[string]map[string]string // un available params
 	Domains        []string
+	deleteDomain   map[string]bool
 }
 
 const brainNameParts = 2
@@ -37,21 +40,30 @@ const (
 )
 
 func (tuner *Tuner) initParams() error {
-	var target *Group
-	var err error
+	var target = new(Group)
 	tuner.BrainParam = []Parameter{}
 	for index, group := range config.KeenTune.Group {
-		target, err = getInitParam(index+1, group.ParamMap, &tuner.BrainParam)
-		if err != nil {
-			return err
-		}
-
 		target.IPs = group.IPs
 		target.Port = group.Port
 		target.GroupName = group.GroupName
 		target.GroupNo = group.GroupNo
 		target.Domains = group.Domains
-		target.mergeParam()
+
+		initDomainRes, err := target.initDomain()
+		if err != nil {
+			return fmt.Errorf("group %v init domain failed, %v", target.GroupName, err)
+		}
+
+		for _, result := range initDomainRes {
+			if result != "" {
+				log.Warnln(tuner.logName, result)
+			}
+		}
+
+		err = getInitParam(index+1, group.ParamMap, &tuner.BrainParam, target)
+		if err != nil {
+			return err
+		}
 
 		tuner.ruleList = append(tuner.ruleList, group.RuleList...)
 
@@ -75,8 +87,7 @@ func (tuner *Tuner) initParams() error {
 	return nil
 }
 
-func getInitParam(groupID int, paramMaps []config.DBLMap, brainParam *[]Parameter) (*Group, error) {
-	var target = new(Group)
+func getInitParam(groupID int, paramMaps []config.DBLMap, brainParam *[]Parameter, target *Group) error {
 	var params = make([]config.DBLMap, len(paramMaps))
 
 	var initConf Configuration
@@ -86,18 +97,23 @@ func getInitParam(groupID int, paramMaps []config.DBLMap, brainParam *[]Paramete
 		}
 
 		for domain, parameters := range paramMap {
+			_, find := target.deleteDomain[domain]
+			if find {
+				continue
+			}
+
 			var temp = make(map[string]interface{})
 			for name, value := range parameters {
 				origin, ok := value.(map[string]interface{})
 				if !ok {
-					return nil, fmt.Errorf("assert %v to parameter failed", value)
+					return fmt.Errorf("assert %v to parameter failed", value)
 				}
 
 				param := deepCopy(origin)
 
 				var nameSaltedParam, originParam Parameter
 				if err := utils.Map2Struct(param, &nameSaltedParam); err != nil {
-					return nil, fmt.Errorf("map to struct: %v", err)
+					return fmt.Errorf("map to struct: %v", err)
 				}
 
 				paramSuffix := fmt.Sprintf("@%v%v", groupIDPrefix, groupID)
@@ -105,7 +121,7 @@ func getInitParam(groupID int, paramMaps []config.DBLMap, brainParam *[]Paramete
 				nameSaltedParam.DomainName = domain
 
 				if err := detectParam(&nameSaltedParam); err != nil {
-					return nil, fmt.Errorf("detect macro defination param:%v", err)
+					return fmt.Errorf("detect macro defination param:%v", err)
 				}
 
 				originParam = nameSaltedParam
@@ -126,7 +142,9 @@ func getInitParam(groupID int, paramMaps []config.DBLMap, brainParam *[]Paramete
 	target.Params = params
 	target.Dump = initConf
 
-	return target, nil
+	target.mergeParam()
+
+	return nil
 }
 
 func deepCopy(origin interface{}) map[string]interface{} {
@@ -345,6 +363,7 @@ func (tuner *Tuner) initProfiles() error {
 
 		var target = new(Group)
 		target.IPs = group.IPs
+		target.Port = group.Port
 		confFile := tuner.Setter.ConfFile[groupIdx]
 		abnormal, err := target.getConfigParam(confFile)
 		if !strings.Contains(tuner.recommend, abnormal.Recommend) {
@@ -359,7 +378,6 @@ func (tuner *Tuner) initProfiles() error {
 			return err
 		}
 
-		target.Port = group.Port
 		target.GroupName = group.GroupName
 		target.GroupNo = group.GroupNo
 		tuner.Group = append(tuner.Group, *target)
@@ -382,6 +400,11 @@ func (gp *Group) getConfigParam(fileName string) (ABNLResult, error) {
 		return abnormal, fmt.Errorf("No valid domain can be used. Please check and set valid configurations in %v", fileName)
 	}
 
+	err = gp.getConfDomain(resultMap, &abnormal)
+	if err != nil {
+		return abnormal, err
+	}
+
 	gp.Params, err = config.GetPriorityParams(resultMap)
 	if err != nil {
 		return abnormal, err
@@ -389,6 +412,34 @@ func (gp *Group) getConfigParam(fileName string) (ABNLResult, error) {
 
 	gp.mergeParam()
 	return abnormal, nil
+}
+
+func (gp *Group) getConfDomain(resultMap map[string]map[string]interface{}, abnormal *ABNLResult) error {
+	var domains []string
+	for domain := range resultMap {
+		domains = append(domains, domain)
+	}
+
+	sort.Strings(domains)
+
+	gp.Domains = domains
+
+	initDomainRes, err := gp.initDomain()
+	if err != nil {
+		return err
+	}
+
+	for _, result := range initDomainRes {
+		if result != "" {
+			abnormal.Warning += fmt.Sprintf("%v%v", result, multiSeparator)
+		}
+	}
+
+	for delDomain := range gp.deleteDomain {
+		delete(resultMap, delDomain)
+	}
+
+	return nil
 }
 
 func (gp *Group) deleteUnAVLConf(unAVLParams []map[string]map[string]string) (string, int) {
@@ -421,7 +472,7 @@ func (gp *Group) deleteUnAVLConf(unAVLParams []map[string]map[string]string) (st
 					delete(gp.Params[priorityIdx], domain)
 				}
 
-				decoratedWarnInfo := fmt.Sprintf("%v%v", notMetInfo, multiRecordSeparator)
+				decoratedWarnInfo := fmt.Sprintf("%v%v", notMetInfo, multiSeparator)
 				retWarnInfo = append(retWarnInfo, decoratedWarnInfo)
 				isAllUnAVL = isAllUnAVL || unAVLCount == gp.ParamTotal
 				continue
@@ -464,7 +515,7 @@ func (gp *Group) tidyUnavailableParams(kv map[string]string, domain string, warn
 				// delete unavailable configure params
 				delete(gp.Params[priorityIdx][domain], name)
 
-				tmpWarn := fmt.Sprintf("[%v] %v: %v%v", domain, name, msg, multiRecordSeparator)
+				tmpWarn := fmt.Sprintf("[%v] %v: %v%v", domain, name, msg, multiSeparator)
 				// discard repeated warning
 				if !strings.Contains(*warningInfo, tmpWarn) {
 					oneDomainWarning += tmpWarn
@@ -479,6 +530,39 @@ func (gp *Group) tidyUnavailableParams(kv map[string]string, domain string, warn
 	}
 
 	return oneDomainWarning
+}
+
+func (gp *Group) updateDomains(domains *sync.Map) {
+	gp.deleteDomain = make(map[string]bool)
+	domains.Range(func(domain, vi interface{}) bool {
+		value, ok := domain.(string)
+		if ok {
+			gp.deleteDomain[value] = true
+		}
+
+		return true
+	})
+
+	if len(gp.deleteDomain) == 0 {
+		return
+	}
+
+	var updatedDomains []string
+	for _, domain := range gp.Domains {
+		var notIn = true
+		for delDomain := range gp.deleteDomain {
+			if delDomain == domain {
+				notIn = false
+				break
+			}
+		}
+
+		if notIn {
+			updatedDomains = append(updatedDomains, domain)
+		}
+	}
+
+	gp.Domains = updatedDomains
 }
 
 
