@@ -11,12 +11,13 @@ from UI_base.test_sensitive_tuning_normal import TestKeenTuneUiSensitiveNormal
 
 def RunBasicCase():
     profile_suite = unittest.TestSuite()
-    profile_suite.addTest(TestKeenTuneUiNormal("test_copyfile"))
-    profile_suite.addTest(TestKeenTuneUiNormal("test_creatfile"))
     profile_suite.addTest(TestKeenTuneUiNormal("test_checkfile"))
+    profile_suite.addTest(TestKeenTuneUiNormal("test_copyfile"))
+    profile_suite.addTest(TestKeenTuneUiNormal("test_copyfile_check_name"))
+    profile_suite.addTest(TestKeenTuneUiNormal("test_creatfile"))
     profile_suite.addTest(TestKeenTuneUiNormal("test_editor"))
     profile_suite.addTest(TestKeenTuneUiNormal("test_set_group"))
-    profile_suite.addTest(TestKeenTuneUiNormal("test_restore"))
+    profile_suite.addTest(TestKeenTuneUiNormal("test_rollback"))
     profile_suite.addTest(TestKeenTuneUiNormal("test_deletefile"))
     profile_suite.addTest(TestKeenTuneUiNormal("test_language_switch"))
     profile_suite.addTest(TestKeenTuneUiNormal("test_refresh"))
@@ -35,6 +36,8 @@ def RunBasicCase():
     param_suite.addTest(TestKeenTuneUiSmartNormal("test_setting"))
     param_suite.addTest(TestKeenTuneUiSmartNormal("test_sorting"))
     param_suite.addTest(TestKeenTuneUiSmartNormal("test_language_switch"))
+    param_suite.addTest(TestKeenTuneUiSmartNormal("test_set_list"))
+    param_suite.addTest(TestKeenTuneUiSmartNormal("test_compare"))
 
     sensi_suite = unittest.TestSuite()
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_create_job"))
@@ -47,6 +50,8 @@ def RunBasicCase():
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_setting"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_sorting"))
     sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_language_switch"))
+    sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_set_list"))
+    sensi_suite.addTest(TestKeenTuneUiSensitiveNormal("test_compare"))
 
     suite = unittest.TestSuite([profile_suite, param_suite, sensi_suite])
     return suite
@@ -61,4 +66,3 @@ if __name__ == '__main__':
     TestKeenTuneUiSensitiveNormal.web_ip = sys.argv[1]
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(RunBasicCase())
-
