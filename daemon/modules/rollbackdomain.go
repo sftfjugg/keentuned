@@ -41,7 +41,7 @@ func (tuner *Tuner) dumpForRBDomains() {
 		domainDict[key] = target.initDomains
 	}
 
-	info, _ := json.Marshal(doInitDomain)
+	info, _ := json.Marshal(domainDict)
 	ioutil.WriteFile(dumpRollbackDomainsFile(), info, 0644)
 	mutex.Unlock()
 }
