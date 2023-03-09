@@ -70,7 +70,7 @@ class TestTunedProfile(unittest.TestCase):
         cmd = 'keentune profile set atomic-guest.conf'
         self.status, self.out, _  = sysCommand(cmd)
         self.assertEqual(self.status, 0)
-        self.assertIn("[sysctl] 5 Succeeded", self.out)
+        self.assertIn("[sysctl] 6 Succeeded", self.out)
         res = self.get_cmd_res("sysctl -n kernel.pid_max")
         self.assertEqual(res, "131072")
 
@@ -78,7 +78,7 @@ class TestTunedProfile(unittest.TestCase):
         cmd = 'keentune profile set atomic-host.conf'
         self.status, self.out, _  = sysCommand(cmd)
         self.assertEqual(self.status, 0)
-        self.assertIn("[sysctl] 5 Succeeded", self.out)
+        self.assertIn("[sysctl] 6 Succeeded", self.out)
         res = self.get_cmd_res("sysctl -n fs.inotify.max_user_watches")
         self.assertEqual(res, "65536")
 
