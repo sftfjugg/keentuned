@@ -26,9 +26,9 @@ type implyDetail struct {
 // Tuner define a tuning job include Algorithm, Benchmark, Group
 type Tuner struct {
 	Name          string // Name job name
-	Algorithm     string // 使用的算法
-	MAXIteration  int    // 最大执行轮次
-	Iteration     int    // 当前轮次
+	Algorithm     string // used algorithm
+	MAXIteration  int    // maximum iterations
+	Iteration     int    // current iteration
 	StartTime     time.Time
 	Benchmark     Benchmark
 	timeSpend     timeSpend
@@ -39,6 +39,7 @@ type Tuner struct {
 	Flag          string // command flag, enum: "collect", "tuning"
 	logName       string
 	feedbackScore map[string][]float32
+	baseScore     map[string]ItemDetail
 	benchScore    map[string]ItemDetail
 	Group         []Group
 	BrainParam    []Parameter
@@ -328,5 +329,4 @@ func (tuner *Tuner) deleteUnAVLParams() {
 		}
 	}
 }
-
 

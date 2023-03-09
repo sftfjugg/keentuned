@@ -74,7 +74,7 @@ func (s *Service) Benchmark(flag BenchmarkFlag, reply *string) error {
 	tune.Benchmark = *inst
 
 	for i := 1; i <= flag.Round; i++ {
-		if score, _, benchmarkResult, err = tune.RunBenchmark(1); err != nil {
+		if score, benchmarkResult, err = tune.RunBenchmark(1); err != nil {
 			if err.Error() == "get benchmark is interrupted" {
 				return fmt.Errorf("run [%v] round benchmark positive stopped", i)
 			}

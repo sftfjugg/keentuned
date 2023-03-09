@@ -67,7 +67,7 @@ func (tuner *Tuner) benchmark() error {
 
 	// execution benchmark
 	tuner.Benchmark.LogName = tuner.logName
-	tuner.feedbackScore, tuner.benchScore, tuner.benchSummary, err = tuner.RunBenchmark(round)
+	tuner.feedbackScore, _, err = tuner.RunBenchmark(round)
 	if err != nil {
 		if strings.Contains(err.Error(), "get benchmark is interrupted") {
 			log.Infof(tuner.logName, "Tuning interrupted after step%v, [run benchmark] round %v stopped.", tuner.Step, tuner.Iteration)

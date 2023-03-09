@@ -79,9 +79,13 @@ func (tuner *Tuner) dump(option string) {
 	for index := range tuner.Group {
 		if config.KeenTune.BaseDump {
 			tuner.Group[index].Dump.Round = -1
+			tuner.Group[index].Dump.Score = tuner.baseScore
 		}
 
-		tuner.Group[index].Dump.Score = tuner.benchScore
+		if config.KeenTune.ExecDump {
+			tuner.Group[index].Dump.Score = tuner.benchScore
+		}
+
 		err := tuner.Group[index].Dump.Save(tuner.Name, fmt.Sprintf("_group%v%v", index+1, suffix))
 		if err != nil {
 			log.Warnf(tuner.logName, "dump %v failed, %v", option, err)
@@ -105,7 +109,7 @@ func (tuner *Tuner) baseline() error {
 	}
 
 	var err error
-	_, tuner.benchScore, tuner.benchSummary, err = tuner.RunBenchmark(config.KeenTune.BaseRound)
+	_, _, err = tuner.RunBenchmark(config.KeenTune.BaseRound, true)
 	if err != nil {
 		if strings.Contains(err.Error(), "get benchmark is interrupted") {
 			log.Infof(tuner.logName, "Tuning interrupted after step%v, [baseline benchmark] stopped.", tuner.Step)
@@ -134,7 +138,7 @@ func (tuner *Tuner) brainInit() error {
 	requireConf["iteration"] = tuner.MAXIteration
 	requireConf["name"] = tuner.Name
 	requireConf["parameters"] = tuner.BrainParam
-	requireConf["baseline_score"] = tuner.benchScore
+	requireConf["baseline_score"] = tuner.baseScore
 
 	if tuner.ruleList == nil {
 		tuner.ruleList = make([][3]string, 0)
@@ -278,7 +282,7 @@ func (tuner *Tuner) saveBrainInit() {
 			ioutil.WriteFile(knobsFile, knobs, 0666)
 		}
 
-		bench, err := json.Marshal(tuner.benchScore)
+		bench, err := json.Marshal(tuner.baseScore)
 		if err != nil {
 			log.Warnf("", "save to bench.json %v", err)
 		} else {
@@ -287,5 +291,4 @@ func (tuner *Tuner) saveBrainInit() {
 		}
 	}
 }
-
 

@@ -8,9 +8,18 @@ import (
 	"keentune/daemon/common/log"
 	"keentune/daemon/common/utils"
 	"keentune/daemon/common/utils/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
+)
+
+const (
+	itemLenWarnFmt      = "find bench.json items length [%v] is not equal to /benchmark response scores length [%v], please check the bench.json and the python script whether matched"
+	itemNotFoundWarnFmt = "benchmark response  [%v] detail info not exist, please check the bench.json and the python script whether matched"
+
+	debugScoreInfoFmt = "\n\t[%v]\t(weight: %.1f)\tscores %v,\taverage = %.3f,\t%v"
+	positiveWeightFmt = "\n\t[%v]\t(weight: %.1f)\taverage scores = %.3f"
 )
 
 // Benchmark define benchmark cmd and host to run
@@ -23,115 +32,112 @@ type Benchmark struct {
 	verbose     bool
 	LogName     string   `json:"-"`
 	SortedItems []string `json:"-"`
+	isBase      bool
 }
 
 // BenchResult benchmark request result
 type BenchResult struct {
-	Success bool               `json:"suc"`
-	Result  map[string]float32 `json:"result,omitempty"`
-	Message interface{}        `json:"msg,omitempty"`
+	Success bool                 `json:"suc"`
+	Result  map[string][]float32 `json:"result,omitempty"`
+	Message interface{}          `json:"msg,omitempty"`
 }
 
 // RunBenchmark : run benchmark script or command in client
-func (tuner *Tuner) RunBenchmark(num int) (map[string][]float32, map[string]ItemDetail, string, error) {
+func (tuner *Tuner) RunBenchmark(num int, isBase ...bool) (map[string][]float32, string, error) {
+	// start
 	start := time.Now()
-	var scores = make([]map[string][]float32, len(config.KeenTune.BenchGroup))
-	var sumScore = make([]map[string]float32, len(config.KeenTune.BenchGroup))
-	var groupsScores = make([][]map[string]float32, len(config.KeenTune.BenchGroup))
-	var benchFinishStatus = make([]string, len(config.KeenTune.BenchIPMap))
-
-	tuner.doBenchmark(groupsScores, scores, sumScore, benchFinishStatus, num)
-	var errMsg string
-	for _, status := range benchFinishStatus {
-		if status != "" {
-			errMsg += fmt.Sprintf("%v;", status)
-		}
-	}
-	if errMsg != "" {
-		return nil, nil, "", fmt.Errorf(strings.TrimSuffix(errMsg, ";"))
+	if len(isBase) == 0 {
+		tuner.Benchmark.isBase = false
+	} else {
+		tuner.Benchmark.isBase = isBase[0]
 	}
 
-	//  collect score of each group
-	var benchName = make(map[string]string)
-	for groupID, groupScores := range groupsScores {
-		var multiBenchScore = make(map[string]float32)
-		for _, results := range groupScores {
-			for name, value := range results {
-				_, ok := benchName[name]
-				if !ok {
-					benchName[name] = name
-				}
-				multiBenchScore[name] += value
-				sumScore[groupID][name] += value
-			}
-		}
+	// do benchmark
+	groupScores, benchResult := tuner.doBenchmark(num)
 
-		for name, _ := range benchName {
-			scores[groupID][name] = append(scores[groupID][name],multiBenchScore[name])
-		}
-	}
-
-	tuner.Benchmark.round = num
-	tuner.Benchmark.verbose = tuner.Verbose
-	benchScoreResult, resultString, err := tuner.Benchmark.getScore(scores[0], sumScore[0], start, &tuner.timeSpend.benchmark)
-	return scores[0], benchScoreResult, resultString, err
+	// analyse score, Currently, only one group of benches is supported, so idx is 0
+	err := tuner.analyseScore(groupScores[0], benchResult, start)
+	return groupScores[0], tuner.benchSummary, err
 }
 
-func (tuner *Tuner) doBenchmark(groupsScores [][]map[string]float32, scores []map[string][]float32, sumScore []map[string]float32, benchFinishStatus []string, round int) {
-	wg := sync.WaitGroup{}
+func (tuner *Tuner) doBenchmark(num int) ([]map[string][]float32, []*string) {
+	var wg sync.WaitGroup
+	var benchResult = make([]*string, len(config.KeenTune.BenchIPMap))
 	sc := NewSafeChan()
 	defer sc.SafeStop()
-	for groupID, group := range config.KeenTune.BenchGroup {
-		groupsScores[groupID] = make([]map[string]float32, len(group.SrcIPs))
-		if scores[groupID] == nil {
-			scores[groupID] = make(map[string][]float32)
-		}
+	var scores = make([]map[string][]float32, len(config.KeenTune.BenchGroup))
 
-		if sumScore[groupID] == nil {
-			sumScore[groupID] = make(map[string]float32)
-		}
+	for gpIdx, benchGroup := range config.KeenTune.BenchGroup {
+		scores[gpIdx] = make(map[string][]float32)
+		benchResult[gpIdx] = new(string)
 
-		for index, benchIP := range group.SrcIPs {
+		for index, benchIP := range benchGroup.SrcIPs {
 			wg.Add(1)
-			go func(wg *sync.WaitGroup, benchIP string, index int) {
-				ipIdx := config.KeenTune.Bench.BenchIPMap[benchIP]
-				config.IsInnerBenchRequests[ipIdx] = true
-				defer func() {
-					wg.Done()
-					config.IsInnerBenchRequests[ipIdx] = false
-				}()
+			ipIndex := config.KeenTune.Bench.BenchIPMap[benchIP]
+			req := request{
+				host:    fmt.Sprintf("%s:%s", benchIP, benchGroup.SrcPort),
+				id:      index,
+				ipIndex: ipIndex,
+				body:    getBenchReq(tuner.Benchmark.Cmd, ipIndex),
+				groupID: gpIdx,
+			}
 
-				tuner.Benchmark.Host = fmt.Sprintf("%s:%s", benchIP, group.SrcPort)
-				resp, err := http.RemoteCall("POST", tuner.Benchmark.Host+"/benchmark", getBenchReq(tuner.Benchmark.Cmd, benchIP, round))
-				if err != nil {
-					benchFinishStatus[ipIdx-1] += fmt.Sprintf("bench.group %v-%v %v", groupID+1, index+1, err.Error())
-					return
-				}
-
-				groupsScores[groupID][index], err = tuner.parseScore(resp, benchIP, sc)
-				if err != nil {
-					benchFinishStatus[ipIdx-1] += fmt.Sprintf("bench.group %v-%v %v", groupID+1, index+1, err.Error())
-					return
-				}
-			}(&wg, benchIP, index)
+			go doOneBench(&wg, req, scores, benchResult, num, sc)
 		}
 	}
 
 	wg.Wait()
 
+	return scores, benchResult
 }
 
-func getBenchReq(cmd, ip string, round int) interface{} {
+func getBenchReq(cmd string, id int) interface{} {
 	var requestBody = map[string]interface{}{}
 	requestBody["benchmark_cmd"] = cmd
 	requestBody["resp_ip"] = config.RealLocalIP
 	requestBody["resp_port"] = config.KeenTune.Port
-	requestBody["bench_id"] = config.KeenTune.Bench.BenchIPMap[ip]
-	requestBody["round"] = round
+	requestBody["bench_id"] = id
 	return requestBody
 }
 
-func (benchmark Benchmark) getScore(scores map[string][]float32, sumScores map[string]float32, start time.Time, benchTime *time.Duration) (map[string]ItemDetail, string, error) {
+func doOneBench(s *sync.WaitGroup, req request, scores []map[string][]float32, result []*string, num int, sc *SafeChan) {
+	var errMsg error
+	config.IsInnerBenchRequests[req.ipIndex] = true
+	defer func() {
+		s.Done()
+		config.IsInnerBenchRequests[req.ipIndex] = false
+		if errMsg != nil {
+			sc.SafeStop()
+		}
+	}()
+
+	var scoreResult = make(map[string][]float32)
+	url := fmt.Sprintf("%v/benchmark", req.host)
+	resIdx := req.ipIndex - 1
+	for i := 0; i < num; i++ {
+		resp, err := http.RemoteCall("POST", url, req.body)
+		if err != nil {
+			errMsg = err
+			*result[resIdx] += fmt.Sprintf("bench.group %v-%v %v", req.groupID+1, req.id+1, err.Error())
+			return
+		}
+
+		benchScore, err := parseScore(resp, req.ipIndex, sc)
+		if err != nil {
+			errMsg = err
+			*result[resIdx] += fmt.Sprintf("bench.group %v-%v %v", req.groupID+1, req.id+1, err.Error())
+			return
+		}
+
+		for item, scores := range benchScore {
+			scoreResult[item] = append(scoreResult[item], scores...)
+		}
+	}
+
+	scores[req.groupID] = scoreResult
+}
+
+func (benchmark *Benchmark) getScore(scores map[string][]float32, start time.Time, benchTime *time.Duration) (map[string]ItemDetail, string, error) {
 	benchScoreResult := map[string]ItemDetail{}
 	var average float32
 	if len(scores) == 0 {
@@ -139,47 +145,55 @@ func (benchmark Benchmark) getScore(scores map[string][]float32, sumScores map[s
 	}
 
 	if len(benchmark.Items) != len(scores) {
-		log.Warnf("", "demand bench.json items length [%v] is not equal to benchmark api response scores length [%v], please check the bench.json and the python file you specified whether matched", len(benchmark.Items), len(scores))
+		log.Warnf("", itemLenWarnFmt, len(benchmark.Items), len(scores))
 	}
 
 	resultString := ""
 	for _, name := range benchmark.SortedItems {
-		info, ok := benchmark.Items[name]
-		if !ok {
-			return nil, "", fmt.Errorf("assert item %v not found", name)
-		}
+		info, _ := benchmark.Items[name]
 
 		scoreSlice, ok := scores[name]
 		if !ok {
-			log.Warnf("", "benchmark response  [%v] detail info not exist, please check the bench.json and the python file you specified whether matched", name)
+			log.Warnf("", itemNotFoundWarnFmt, name)
 			continue
 		}
-		average = sumScores[name] / float32(len(scoreSlice))
+
+		num := len(scoreSlice)
+		var sumScore float32
+		for i := 0; i < num; i++ {
+			sumScore += scoreSlice[i]
+		}
+
+		average = sumScore / float32(len(scoreSlice))
 
 		if benchmark.verbose {
-			resultString += fmt.Sprintf("\n\t[%v]\t(weight: %.1f)\tscores %v,\taverage = %.3f,\t%v", name, info.Weight, scoreSlice, average, utils.Fluctuation(scoreSlice, average))
+			resultString += fmt.Sprintf(debugScoreInfoFmt, name, info.Weight, scoreSlice, average, utils.Fluctuation(scoreSlice, average))
 		}
 
 		if !benchmark.verbose && info.Weight > 0.0 {
-			resultString += fmt.Sprintf("\n\t[%v]\t(weight: %.1f)\taverage scores = %.3f", name, info.Weight, average)
+			resultString += fmt.Sprintf(positiveWeightFmt, name, info.Weight, average)
 		}
 
-		benchScoreResult[name] = ItemDetail{
-			Negative: info.Negative,
-			Weight:   info.Weight,
-			Strict:   info.Strict,
-			Baseline: scoreSlice,
+		var items ItemDetail
+		items.Negative = info.Negative
+		items.Weight = info.Weight
+		items.Strict = info.Strict
+
+		if benchmark.isBase {
+			items.Baseline = scoreSlice
+		} else {
+			items.Value = average
 		}
 
+		benchScoreResult[name] = items
+
+		timeCost := utils.Runtime(start)
+		*benchTime += timeCost.Count
+
+		if benchmark.verbose {
+			resultString = fmt.Sprintf("%v, %v", resultString, timeCost.Desc)
+		}
 	}
-
-	timeCost := utils.Runtime(start)
-	*benchTime += timeCost.Count
-
-	if benchmark.verbose {
-		resultString = fmt.Sprintf("%v, %v", resultString, timeCost.Desc)
-	}
-
 	return benchScoreResult, resultString, nil
 }
 
@@ -208,7 +222,40 @@ func (benchmark Benchmark) SendScript(sendTime *time.Duration, Host string) (boo
 	return true, timeCost.Desc, nil
 }
 
-func (tuner *Tuner) parseScore(body []byte, ip string, sc *SafeChan) (map[string]float32, error) {
+func (tuner *Tuner) analyseScore(scores map[string][]float32, benchResults []*string, start time.Time) error {
+	var errMsg string
+	for _, status := range benchResults {
+		if *status != "" {
+			errMsg += fmt.Sprintf("%v;", *status)
+		}
+	}
+
+	if errMsg != "" {
+		return fmt.Errorf(strings.TrimSuffix(errMsg, ";"))
+	}
+
+	benchScoreResult, summaryInfo, err := tuner.Benchmark.getScore(scores, start, &tuner.timeSpend.benchmark)
+	if err != nil {
+		return err
+	}
+
+	if tuner.Benchmark.isBase {
+		tuner.baseScore = benchScoreResult
+	} else {
+		for key := range benchScoreResult {
+			item := benchScoreResult[key]
+			item.Baseline = tuner.baseScore[key].Baseline
+			benchScoreResult[key] = item
+		}
+		tuner.benchScore = benchScoreResult
+	}
+
+	tuner.benchSummary = summaryInfo
+
+	return nil
+}
+
+func parseScore(body []byte, id int, sc *SafeChan) (map[string][]float32, error) {
 	var benchResult BenchResult
 	err := json.Unmarshal(body, &benchResult)
 	if err != nil {
@@ -219,7 +266,6 @@ func (tuner *Tuner) parseScore(body []byte, ip string, sc *SafeChan) (map[string
 		return nil, fmt.Errorf("parse score failed, msg :%v", benchResult.Message)
 	}
 
-	id := config.KeenTune.Bench.BenchIPMap[ip]
 	select {
 	case bytes := <-config.BenchmarkResultChan[id]:
 		log.Debugf("", "get benchmark result:%s", bytes)
@@ -229,6 +275,30 @@ func (tuner *Tuner) parseScore(body []byte, ip string, sc *SafeChan) (map[string
 
 		if !benchResult.Success {
 			return nil, fmt.Errorf("msg:%v", benchResult.Message)
+		}
+
+		result, ok := benchResult.Message.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("msg: assert message type failed, type is %v", reflect.TypeOf(benchResult.Message))
+		}
+
+		benchResult.Result = map[string][]float32{}
+		for key, value := range result {
+			scoreI, ok := value.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("msg: assert score slice failed, type is %v", reflect.TypeOf(value))
+			}
+
+			var scores []float32
+			for _, score := range scoreI {
+				value, ok := score.(float64)
+				if !ok {
+					return nil, fmt.Errorf("msg: assert score to float64 failed, type is %v", reflect.TypeOf(value))
+				}
+				scores = append(scores, float32(value))
+			}
+
+			benchResult.Result[key] = scores
 		}
 
 		break

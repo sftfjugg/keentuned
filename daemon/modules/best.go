@@ -48,7 +48,7 @@ func (tuner *Tuner) verifyBest() error {
 
 	log.Infof(log.ParamTune, "\nStep%v. Tuning is finished, checking benchmark score of best configuration.\n\n", tuner.IncreaseStep())
 
-	if tuner.feedbackScore, _, tuner.benchSummary, err = tuner.RunBenchmark(config.KeenTune.AfterRound); err != nil {
+	if tuner.feedbackScore, _, err = tuner.RunBenchmark(config.KeenTune.AfterRound); err != nil {
 		if strings.Contains(err.Error(), "get benchmark is interrupted") {
 			log.Infof(log.ParamTune, "Tuning interrupted after step%v, [check best configuration benchmark] stopped.", tuner.Step)
 			return fmt.Errorf("run benchmark interrupted")
