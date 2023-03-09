@@ -13,10 +13,11 @@ import (
 )
 
 type setVars struct {
-	ip     string
-	wg     *sync.WaitGroup
-	target config.Group
-	param  []map[string]map[string]string
+	ip        string
+	wg        *sync.WaitGroup
+	target    config.Group
+	param     []map[string]map[string]string
+	needStore bool
 }
 
 var (
@@ -32,24 +33,31 @@ func SetDefault() () {
 	}
 
 	var wg sync.WaitGroup
+	var domains = &sync.Map{}
 	for _, tg := range config.KeenTune.Group {
-		for _, ip := range tg.IPs {
+		for idx, ip := range tg.IPs {
 			wg.Add(1)
+
+			needStore := idx == 0
+
 			setter := setVars{
-				ip:     ip,
-				target: tg,
-				param:  param,
-				wg:     &wg,
+				ip:        ip,
+				target:    tg,
+				param:     param,
+				wg:        &wg,
+				needStore: needStore,
 			}
 
-			go setConfigure(setter)
+			go setConfigure(setter, domains)
 		}
 	}
 
 	wg.Wait()
+
+	m.DumpDefaultRBDomains(domains)
 }
 
-func setConfigure(setter setVars) {
+func setConfigure(setter setVars, domains *sync.Map) {
 	defer setter.wg.Done()
 
 	var tuner = &m.Tuner{}
@@ -60,7 +68,11 @@ func setConfigure(setter setVars) {
 	}
 
 	tuner.Group = []m.Group{
-		{IPs: []string{setter.ip}, Port: setter.target.Port},
+		{
+			IPs:     []string{setter.ip},
+			Port:    setter.target.Port,
+			GroupNo: setter.target.GroupNo,
+		},
 	}
 
 	recommend, result, err := tuner.SetDefault()
@@ -79,6 +91,10 @@ func setConfigure(setter setVars) {
 
 		log.Errorf("", "'%v' set default '%v' err %v", setter.ip, recConf, err)
 		return
+	}
+
+	if setter.needStore {
+		tuner.StoreRBDomain(0, domains)
 	}
 
 	resultPrefix := fmt.Sprintf("[+] Default Set '%v' of '%v' result:", recConf, setter.ip)

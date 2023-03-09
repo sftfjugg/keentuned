@@ -30,6 +30,14 @@ const (
 	FileNotExist   = "do not exists"
 	NoNeedRollback = "don't need rollback"
 	NoBackupFile   = "No such file"
+
+	disableRollback = "rollback all is disable in this version"
+)
+
+const (
+	bakUri   = "backup"
+	rbUri    = "rollback"
+	rbAllUri = "rollbackall"
 )
 
 func (tuner *Tuner) isInterrupted() bool {
@@ -46,7 +54,7 @@ func (tuner *Tuner) isInterrupted() bool {
 func Rollback(logName string, callType string) (string, error) {
 	tune := new(Tuner)
 	tune.logName = logName
-	tune.initParams()
+	tune.initRB()
 	var err error
 	if callType == "original" {
 		err = tune.original()
@@ -67,6 +75,11 @@ func (gp *Group) concurrentSuccess(uri string, request interface{}) (string, boo
 	var detailInfo = new(string)
 	var failedInfo = new(string)
 	unAVLParams := make([]map[string]map[string]string, len(gp.IPs))
+
+	// replace rollback all to rollback
+	if uri == rbAllUri {
+		uri = rbUri
+	}
 
 	for index, ip := range gp.IPs {
 		wg.Add(1)
@@ -99,7 +112,8 @@ func (gp *Group) concurrentSuccess(uri string, request interface{}) (string, boo
 
 	wg.Wait()
 
-	if uri == "backup" {
+	if uri == bakUri {
+		gp.updateRBDomains()
 		warningInfo, status := gp.deleteUnAVLConf(unAVLParams)
 		if status == FAILED {
 			return warningInfo, false
@@ -169,7 +183,10 @@ func parseStatusCode(msg interface{}) int {
 		var count int
 		for _, value := range info {
 			message := fmt.Sprint(value)
-			if strings.Contains(message, BackupNotFound) || strings.Contains(message, FileNotExist) || strings.Contains(message, NoBackupFile) {
+			if strings.Contains(message, BackupNotFound) ||
+				strings.Contains(message, FileNotExist) ||
+				strings.Contains(message, NoBackupFile) ||
+				strings.Contains(message, disableRollback) {
 				count++
 			}
 		}
@@ -179,7 +196,10 @@ func parseStatusCode(msg interface{}) int {
 		}
 		return SUCCESS
 	case string:
-		if strings.Contains(info, BackupNotFound) || strings.Contains(info, FileNotExist) || strings.Contains(info, NoBackupFile) {
+		if strings.Contains(info, BackupNotFound) ||
+			strings.Contains(info, FileNotExist) ||
+			strings.Contains(info, NoBackupFile) ||
+			strings.Contains(info, disableRollback) {
 			return WARNING
 		}
 		return SUCCESS
@@ -229,7 +249,7 @@ func (tuner *Tuner) original() error {
 		"domains": []string{},
 		"all":     true,
 	}
-	return tuner.concurrent("rollbackall")
+	return tuner.concurrent(rbAllUri)
 }
 
 

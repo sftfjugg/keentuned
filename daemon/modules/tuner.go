@@ -97,6 +97,8 @@ func (tuner *Tuner) Tune() {
 		err = fmt.Errorf("check best configuration: %v", err)
 		return
 	}
+
+	tuner.dumpForRBDomains()
 }
 
 func (tuner *Tuner) parseTuningError(err error) {

@@ -17,20 +17,21 @@ import (
 
 // Group ...
 type Group struct {
-	IPs            []string
-	Params         []config.DBLMap // priority params for set configure
-	Port           string
-	ReadOnly       bool
-	Dump           Configuration
-	MergedParam    map[string]interface{}
-	AllowUpdate    map[string]bool // prevent map concurrency security problems
-	GroupName      string          // target-group-x
-	GroupNo        int             // No. x of target-group-x
-	ParamTotal     int
-	ProfileSetFlag bool
-	UnAVLParams    map[string]map[string]string // un available params
-	Domains        []string
-	deleteDomain   map[string]bool
+	IPs             []string
+	Params          []config.DBLMap // priority params for set configure
+	Port            string
+	ReadOnly        bool
+	Dump            Configuration
+	MergedParam     map[string]interface{}
+	AllowUpdate     map[string]bool // prevent map concurrency security problems
+	GroupName       string          // target-group-x
+	GroupNo         int             // No. x of target-group-x
+	ParamTotal      int
+	ProfileSetFlag  bool
+	UnAVLParams     map[string]map[string]string // un available params
+	initDomains     []string
+	rollbackDomains []string
+	deleteDomain    map[string]bool
 }
 
 const brainNameParts = 2
@@ -47,7 +48,7 @@ func (tuner *Tuner) initParams() error {
 		target.Port = group.Port
 		target.GroupName = group.GroupName
 		target.GroupNo = group.GroupNo
-		target.Domains = group.Domains
+		target.initDomains = group.Domains
 
 		initDomainRes, err := target.initDomain()
 		if err != nil {
@@ -79,6 +80,8 @@ func (tuner *Tuner) initParams() error {
 		target.AllowUpdate = updateIP
 		tuner.Group = append(tuner.Group, *target)
 	}
+
+	tuner.loadRBDomains()
 
 	if len(tuner.Group) == 0 {
 		return fmt.Errorf("found group is null")
@@ -383,6 +386,8 @@ func (tuner *Tuner) initProfiles() error {
 		tuner.Group = append(tuner.Group, *target)
 	}
 
+	tuner.loadRBDomains()
+
 	if len(tuner.Group) == 0 {
 		return fmt.Errorf("found group is null")
 	}
@@ -422,7 +427,7 @@ func (gp *Group) getConfDomain(resultMap map[string]map[string]interface{}, abno
 
 	sort.Strings(domains)
 
-	gp.Domains = domains
+	gp.initDomains = domains
 
 	initDomainRes, err := gp.initDomain()
 	if err != nil {
@@ -548,7 +553,7 @@ func (gp *Group) updateDomains(domains *sync.Map) {
 	}
 
 	var updatedDomains []string
-	for _, domain := range gp.Domains {
+	for _, domain := range gp.initDomains {
 		var notIn = true
 		for delDomain := range gp.deleteDomain {
 			if delDomain == domain {
@@ -562,7 +567,7 @@ func (gp *Group) updateDomains(domains *sync.Map) {
 		}
 	}
 
-	gp.Domains = updatedDomains
+	gp.initDomains = updatedDomains
 }
 
 

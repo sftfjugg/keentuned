@@ -60,8 +60,8 @@ func mkWorkDir() {
 		os.MkdirAll(config.GetProfileWorkPath(""), os.ModePerm)
 	}
 
-	if !file.IsPathExist(config.GetTuningWorkPath("")) {
-		os.MkdirAll(config.GetTuningWorkPath(""), os.ModePerm)
+	if !file.IsPathExist(config.GetTempPath("")) {
+		os.MkdirAll(config.GetTempPath(""), os.ModePerm)
 	}
 	if !file.IsPathExist(config.GetTuningPath("")) {
 		os.MkdirAll(config.GetTuningPath(""), os.ModePerm)

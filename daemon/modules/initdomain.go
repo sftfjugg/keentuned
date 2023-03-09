@@ -69,7 +69,7 @@ func (gp *Group) initDomain() ([]string, error) {
 			host:    host,
 			ipIndex: config.KeenTune.IPMap[ip] - 1,
 			body: map[string]interface{}{
-				"domain_list": gp.Domains,
+				"domain_list": gp.initDomains,
 				"backup_all":  config.KeenTune.BackupAll,
 			},
 		}

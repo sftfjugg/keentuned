@@ -14,8 +14,8 @@ const (
 	SensitizeCsv = "sensitize_jobs.csv"
 )
 
-func GetTuningWorkPath(fileName string) string {
-	return assembleFilePath(KeenTune.DumpHome, "parameter", fileName)
+func GetTempPath(fileName string) string {
+	return assembleFilePath(KeenTune.DumpHome, "tmp", fileName)
 }
 
 func GetGenerateWorkPath(fileName string) string {

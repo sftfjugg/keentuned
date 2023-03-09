@@ -200,7 +200,8 @@ func requestInit(requireConf map[string]interface{}, job string) error {
 }
 
 func (tuner *Tuner) rollback() error {
-	return tuner.concurrent("rollback")
+	cleanRBDomains()
+	return tuner.concurrent(rbUri)
 }
 
 func (tuner *Tuner) concurrent(uri string) error {
@@ -216,13 +217,21 @@ func (tuner *Tuner) concurrent(uri string) error {
 			defer wg.Done()
 			var request interface{}
 			switch strings.ToLower(uri) {
-			case "backup":
+			case bakUri:
 				request = tuner.Group[i].MergedParam
-			case "rollbackall":
+			case rbAllUri:
 				request = tuner.rollbackReq
-			case "rollback":
+			case rbUri:
+				if len(tuner.Group[i].rollbackDomains) == 0 {
+					*warnCount++
+					*sucCount++
+					result := fmt.Sprintf("\tGroup %v : No need to rollback, domain list is null\n", i+1)
+					*sucDetail += result
+					return
+				}
+
 				request = map[string]interface{}{
-					"domains": tuner.Group[i].Domains,
+					"domains": tuner.Group[i].rollbackDomains,
 					"all":     false,
 				}
 			}
@@ -245,7 +254,7 @@ func (tuner *Tuner) concurrent(uri string) error {
 	wg.Wait()
 	retFailureInfo := strings.TrimSuffix(*failedDetail, "; ")
 	switch uri {
-	case "backup":
+	case bakUri:
 		if len(retFailureInfo) > 0 {
 			tuner.backupFailure = backupAllErr
 			tuner.backupWarning = retFailureInfo
@@ -254,7 +263,7 @@ func (tuner *Tuner) concurrent(uri string) error {
 
 		tuner.backupFailure = retFailureInfo
 		tuner.backupWarning = *warningDetail
-	case "rollback":
+	case rbUri, rbAllUri:
 		tuner.rollbackFailure = retFailureInfo
 		if *sucDetail != "" {
 			if *warnCount == len(tuner.Group) {

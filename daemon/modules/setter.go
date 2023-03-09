@@ -35,12 +35,6 @@ func (tuner *Tuner) Set() {
 		return
 	}
 
-	defer func() {
-		if err != nil {
-			tuner.rollback()
-		}
-	}()
-
 	if err = tuner.prepareBeforeSet(); err != nil {
 		tuner.showPrefixReco()
 		log.Errorf(log.ProfSet, err.Error())
@@ -56,6 +50,8 @@ func (tuner *Tuner) Set() {
 
 	err = tuner.setConfigure()
 	if err != nil {
+		tuner.rollback()
+
 		errMsg := strings.Replace(err.Error(), applyFailureResult, "apply all failed", 1)
 		log.Error(log.ProfSet, errMsg)
 		return
@@ -65,6 +61,8 @@ func (tuner *Tuner) Set() {
 	if err != nil {
 		return
 	}
+
+	tuner.dumpForRBDomains()
 
 	log.Info(log.ProfSet, tuner.applySummary)
 
@@ -194,7 +192,7 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 	port := tuner.Group[0].Port
 	host := fmt.Sprintf("%v:%v", ip, port)
 	var snDomains = &sync.Map{}
-	tuner.Group[0].Domains, err = InitDomain(host, param, snDomains, &abn)
+	tuner.Group[0].initDomains, err = InitDomain(host, param, snDomains, &abn)
 	if err != nil {
 		return recommend, "", err
 	}
@@ -224,6 +222,7 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 		ret, err := Configure(reqBody, host, ipIndex)
 
 		if err != nil {
+			tuner.rollback()
 			return recommend, ret, err
 		}
 		result += ret
@@ -264,7 +263,8 @@ func InitDomain(host string, param map[string]map[string]interface{}, snDomains 
 func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}, snDomains *sync.Map) {
 	gp := new(Group)
 	gp.ReadOnly = false
-	gp.Domains = tuner.Group[0].Domains
+	gp.initDomains = tuner.Group[0].initDomains
+	gp.GroupNo = tuner.Group[0].GroupNo
 	gp.updateDomains(snDomains)
 
 	for domain := range param {
@@ -281,6 +281,8 @@ func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}, snDomai
 
 	gp.mergeParam()
 	tuner.Group[0] = *gp
+
+	tuner.loadRBDomains()
 }
 
 
