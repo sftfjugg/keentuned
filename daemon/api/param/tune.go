@@ -47,11 +47,7 @@ func runTuning(flag TuneFlag) {
 	log.ParamTune = "param tune" + ":" + flag.Log
 	// create log file
 	ioutil.WriteFile(flag.Log, []byte{}, 0755)
-	defer func() {
-		m.ClearTask()
-		config.ProgramNeedExit <- true
-		<-config.ServeFinish
-	}()
+	defer m.ClearTask()
 
 	log.Infof(log.ParamTune, "Step1. Parameter auto tuning start, using algorithm = %v.\n", config.KeenTune.Brain.Algorithm)
 	if err := TuningImpl(flag, "tuning"); err != nil {
@@ -124,5 +120,4 @@ func sortBenchItemNames(items map[string]m.ItemDetail) []string {
 	sort.Strings(sortNames)
 	return sortNames
 }
-
 

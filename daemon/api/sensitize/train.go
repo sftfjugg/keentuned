@@ -48,11 +48,7 @@ func runTrain(flags TrainFlag) {
 	m.SetRunningTask(m.JobTraining, flags.Job)
 	log.SensitizeTrain = "sensitize train" + ":" + flags.Log
 	ioutil.WriteFile(flags.Log, []byte{}, os.ModePerm)
-	defer func() {
-		m.ClearTask()
-		config.ProgramNeedExit <- true
-		<-config.ServeFinish
-	}()
+	defer m.ClearTask()
 
 	log.Infof(log.SensitizeTrain, "Step1. Sensitize train data '%v' start, and algorithm is %v.", flags.Data, config.KeenTune.Explainer)
 

@@ -9,6 +9,7 @@ import (
 	"keentune/daemon/common/utils"
 	"keentune/daemon/common/utils/http"
 	"strings"
+	"time"
 )
 
 // Configuration define a group of parameter and benchmark score in this configuration.
@@ -150,13 +151,28 @@ func (tg target) getApplyResult() (map[string]interface{}, error) {
 		Data map[string]interface{} `json:"data"`
 	}
 
+	ticker := time.NewTicker(time.Duration(config.KeenTune.TargetSetTimeout) * time.Minute)
+	defer ticker.Stop()
+	errTimeout := fmt.Errorf("set configure wait for %v minutes timeout", config.KeenTune.TargetSetTimeout)
+
 	select {
 	case body := <-config.ApplyResultChan[tg.ipIndex]:
 		log.Debugf(log.ParamTune, "target id: %v receive apply result :[%v]\n", tg.ipIndex, string(body))
 		if err := json.Unmarshal(body, &applyResp); err != nil {
 			return nil, fmt.Errorf("Parse apply response Unmarshal err: %v", err)
 		}
+
+	case <-ticker.C:
+		config.ServeTerminate <- true
+		terminate(tg.host)
+		return nil, errTimeout
+
+	case <-config.ClientOffline:
+		terminate(tg.host)
+		return nil, errTimeout
+
 	case <-StopSig:
+		terminate(tg.host)
 		return nil, fmt.Errorf("get apply result is interrupted")
 	}
 
@@ -221,5 +237,4 @@ func (tg target) configure() (string, map[string]Parameter, error) {
 
 	return applyResult, paramInfo, nil
 }
-
 

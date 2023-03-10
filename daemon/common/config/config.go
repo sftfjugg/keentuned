@@ -51,10 +51,13 @@ type Default struct {
 	VersionConf string `ini:"VERSION_NUM"`
 
 	// benchmark round ...
-	BaseRound  int  `ini:"BASELINE_BENCH_ROUND"`
-	ExecRound  int  `ini:"TUNING_BENCH_ROUND"`
-	AfterRound int  `ini:"RECHECK_BENCH_ROUND"`
-	BackupAll  bool `ini:"BACKUP_ALL"`
+	BaseRound        int  `ini:"BASELINE_BENCH_ROUND"`
+	ExecRound        int  `ini:"TUNING_BENCH_ROUND"`
+	AfterRound       int  `ini:"RECHECK_BENCH_ROUND"`
+	BackupAll        bool `ini:"BACKUP_ALL"`
+	BenchTimeout     int  `ini:"BENCHMARK_TIMEOUT"`
+	SensTimeout      int  `ini:"SENSITIZE_TIMEOUT"`
+	TargetSetTimeout int  `ini:"TARGET_SET_TIMEOUT"`
 }
 
 // Bench ...
@@ -104,7 +107,8 @@ var (
 
 	//  ApplyResultChan receive apply result
 	ApplyResultChan     []chan []byte
-	ServeFinish         = make(chan bool, 1)
+	ServeTerminate      = make(chan bool, 1)
+	ClientOffline       = make(chan bool, 1)
 	BenchmarkResultChan []chan []byte
 	SensitizeResultChan = make(chan []byte, 1)
 )
@@ -208,6 +212,9 @@ func (c *KeentunedConf) getDefault(cfg *ini.File) {
 	c.BaseRound = keentune.Key("BASELINE_BENCH_ROUND").MustInt(1)
 	c.ExecRound = keentune.Key("TUNING_BENCH_ROUND").MustInt(1)
 	c.AfterRound = keentune.Key("RECHECK_BENCH_ROUND").MustInt(1)
+	c.BenchTimeout = keentune.Key("BENCHMARK_TIMEOUT").MustInt(30)
+	c.SensTimeout = keentune.Key("SENSITIZE_TIMEOUT").MustInt(30)
+	c.TargetSetTimeout = keentune.Key("TARGET_SET_TIMEOUT").MustInt(10)
 
 	c.GetLogConf(cfg)
 }
@@ -478,5 +485,4 @@ func GetJobParamConfig(job string) (string, string, error) {
 
 	return strings.TrimSuffix(parameterConf, "\n"), benchConf, nil
 }
-
 

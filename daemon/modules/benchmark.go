@@ -122,7 +122,7 @@ func doOneBench(s *sync.WaitGroup, req request, scores []map[string][]float32, r
 			return
 		}
 
-		benchScore, err := parseScore(resp, req.ipIndex, sc)
+		benchScore, err := parseScore(resp, req, sc)
 		if err != nil {
 			errMsg = err
 			*result[resIdx] += fmt.Sprintf("bench.group %v-%v %v", req.groupID+1, req.id+1, err.Error())
@@ -255,7 +255,7 @@ func (tuner *Tuner) analyseScore(scores map[string][]float32, benchResults []*st
 	return nil
 }
 
-func parseScore(body []byte, id int, sc *SafeChan) (map[string][]float32, error) {
+func parseScore(body []byte, req request, sc *SafeChan) (map[string][]float32, error) {
 	var benchResult BenchResult
 	err := json.Unmarshal(body, &benchResult)
 	if err != nil {
@@ -266,8 +266,11 @@ func parseScore(body []byte, id int, sc *SafeChan) (map[string][]float32, error)
 		return nil, fmt.Errorf("parse score failed, msg :%v", benchResult.Message)
 	}
 
+	ticker := time.NewTicker(time.Duration(config.KeenTune.BenchTimeout) * time.Minute)
+	defer ticker.Stop()
+	errTimeout := fmt.Errorf("benchmark wait for %v minutes timeout", config.KeenTune.BenchTimeout)
 	select {
-	case bytes := <-config.BenchmarkResultChan[id]:
+	case bytes := <-config.BenchmarkResultChan[req.ipIndex]:
 		log.Debugf("", "get benchmark result:%s", bytes)
 		if err = json.Unmarshal(bytes, &benchResult); err != nil {
 			return nil, fmt.Errorf("unmarshal request info err:%v", err)
@@ -302,7 +305,15 @@ func parseScore(body []byte, id int, sc *SafeChan) (map[string][]float32, error)
 		}
 
 		break
+	case <-ticker.C:
+		config.ServeTerminate <- true
+		terminate(req.host)
+		return nil, errTimeout
+	case <-config.ClientOffline:
+		terminate(req.host)
+		return nil, errTimeout
 	case <-StopSig:
+		terminate(req.host)
 		closeChan()
 		sc.SafeStop()
 		return nil, fmt.Errorf("get benchmark is interrupted")

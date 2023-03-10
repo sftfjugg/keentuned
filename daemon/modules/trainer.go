@@ -10,6 +10,7 @@ import (
 	"keentune/daemon/common/utils"
 	"keentune/daemon/common/utils/http"
 	"strings"
+	"time"
 )
 
 // Tuner define a tuning job include Explainer, Benchmark, Group
@@ -96,6 +97,14 @@ func (tuner *Tuner) getSensitivityResult() (string, error) {
 
 	config.IsInnerSensitizeRequests[1] = true
 	defer func() { config.IsInnerSensitizeRequests[1] = false }()
+
+	ticker := time.NewTicker(time.Duration(config.KeenTune.SensTimeout) * time.Minute)
+	defer ticker.Stop()
+
+	host := config.KeenTune.BrainIP + ":" + config.KeenTune.BrainPort
+
+	errTimeout := fmt.Errorf("training wait for %v minutes timeout", config.KeenTune.SensTimeout)
+
 	select {
 	case resultBytes := <-config.SensitizeResultChan:
 		log.Debugf(log.SensitizeTrain, "get sensitivity result:%s", resultBytes)
@@ -107,7 +116,16 @@ func (tuner *Tuner) getSensitivityResult() (string, error) {
 			return "", err
 		}
 	case <-StopSig:
+		terminate(host)
 		return "", fmt.Errorf("training is interrupted")
+	case <-ticker.C:
+		config.ServeTerminate <- true
+		terminate(host)
+		return "", errTimeout
+
+	case <-config.ClientOffline:
+		terminate(host)
+		return "", errTimeout
 	}
 
 	if !sensitizeParams.Success {

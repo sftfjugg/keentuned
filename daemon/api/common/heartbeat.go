@@ -43,6 +43,7 @@ func monitorClientStatus(monitor interface{}, clientName *string, group []bool) 
 
 	var faultCount int
 	ticker := time.NewTicker(time.Duration(config.KeenTune.HeartbeatTime) * time.Second)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -54,13 +55,16 @@ func monitorClientStatus(monitor interface{}, clientName *string, group []bool) 
 
 			if faultCount == MaxReconnectionTime {
 				log.Info("", "Heartbeat Check the client is offline")
-				config.ServeFinish <- true
+				config.ClientOffline <- true
 				return
 			}
 
 		case <-config.ProgramNeedExit:
 			log.Debug("", "Heartbeat Check program is finish")
-			config.ServeFinish <- true
+			return
+
+		case <-config.ServeTerminate:
+			log.Debug("", "Heartbeat Timeout and service stop")
 			return
 
 		case <-signalChan:
@@ -70,7 +74,6 @@ func monitorClientStatus(monitor interface{}, clientName *string, group []bool) 
 				ResetJob()
 				http.RemoteCall("GET", config.KeenTune.BrainIP+":"+config.KeenTune.BrainPort+"/end", nil)
 			}
-			config.ServeFinish <- true
 			return
 		}
 	}
@@ -269,5 +272,4 @@ func CheckBrainClient() error {
 	go monitorClientStatus(IsBrainOffline, clientName, nil)
 	return nil
 }
-
 

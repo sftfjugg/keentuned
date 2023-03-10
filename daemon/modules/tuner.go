@@ -102,7 +102,13 @@ func (tuner *Tuner) Tune() {
 }
 
 func (tuner *Tuner) parseTuningError(err error) {
-	defer tuner.end()
+	defer func() {
+		tuner.end()
+		if err == nil || !strings.Contains(err.Error(), "timeout") {
+			config.ProgramNeedExit <- true
+		}
+	}()
+
 	if err == nil {
 		tuner.updateStatus(Finish)
 		return
