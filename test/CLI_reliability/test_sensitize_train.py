@@ -129,7 +129,7 @@ class TestSensitizeTrain(unittest.TestCase):
         self.assertEqual(self.status, 0)
         pattern = re.compile(r'trials:\s*(\d+)')
         trials = re.search(pattern, self.out).group(1)
-        self.assertEqual(trials, "1")
+        self.assertEqual(trials, "3")
         self.check_train_job("param1")
         self.delete_train_job("param1")
 
@@ -156,3 +156,4 @@ class TestSensitizeTrain(unittest.TestCase):
         self.status, _, self.error = sysCommand(cmd)
         self.assertEqual(self.status, 1)
         self.assertTrue(self.error.__contains__('invalid argument'))
+

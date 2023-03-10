@@ -259,11 +259,15 @@ class TestMultiScenes(unittest.TestCase):
         self.assertEqual(status, 0)
         self.run_sensitize_train("param1")
 
-    def test_sensitize_train_FUN_explain(self):
-        self.restart_brain_server("explain", "train")
+    def test_sensitize_train_FUN_xgboost(self):
+        self.restart_brain_server("xgboost", "train")
         status = runParamTune("param1")
         self.assertEqual(status, 0)
         self.run_sensitize_train("param1")
 
-
+    def test_sensitize_train_FUN_xsen(self):
+        self.restart_brain_server("xsen", "train")
+        status = runParamTune("param1")
+        self.assertEqual(status, 0)
+        self.run_sensitize_train("param1")
 
