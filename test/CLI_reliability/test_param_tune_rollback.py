@@ -24,11 +24,21 @@ class TestParamTuneRollback(unittest.TestCase):
         status = checkServerStatus(server_list)
         print("server status is: %s" % status)
         self.assertEqual(status, 0)
+        cmd = "ps -ef|grep keentune"
+        self.status, self.out, _  = sysCommand(cmd)
+        print("keentune status is: %s" % self.status)
+        print("keentune output is: %s" % self.out)
+        print("keentune error is: %s" % _)
         logger.info('start to run test_param_tune_rollback testcase')
 
     def tearDown(self) -> None:
         server_list = ["keentuned", "keentune-brain",
                        "keentune-target", "keentune-bench"]
+        cmd = "ps -ef|grep keentune"
+        self.status, self.out, _  = sysCommand(cmd)
+        print("tearDown status is: %s" % self.status)
+        print("tearDown output is: %s" % self.out)
+        print("tearDown error is: %s" % _)
         status = checkServerStatus(server_list)
         self.assertEqual(status, 0)
         deleteDependentData("param1")
@@ -36,7 +46,11 @@ class TestParamTuneRollback(unittest.TestCase):
 
     def test_param_tune_RBT_stop_rollback(self):
         getSysBackupData()
-
+        cmd = "ps -ef|grep keentune"
+        self.status, self.out, _  = sysCommand(cmd)
+        print("keentune status is: %s" % self.status)
+        print("keentune output is: %s" % self.out)
+        print("keentune error is: %s" % _)
         cmd = 'keentune param tune -i 10 --job param1'
         self.status, self.out, _  = sysCommand(cmd)
         print("status is: %s" % self.status)

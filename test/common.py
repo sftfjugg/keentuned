@@ -46,6 +46,7 @@ def getServerStatus(server):
     event = "avaliable" if server == "keentune-brain" else "status"
     url = "http://{}:{}/{}".format(data_dict[server][0], data_dict[server][1], event)
     res = requests.get(url, proxies={"http": None,"https": None})
+    print("res is: %s" % res.text)
     if res.status_code != 200:
         print("Please check {} server is running...".format(server))
         logger.error("Please check {} server is running...".format(server))
