@@ -48,6 +48,12 @@ class TestParamTune(unittest.TestCase):
         self.assertEqual(self.status, 0)
         self.assertTrue(self.out.__contains__(name))
 
+    def reset_keentuned(self, config, file):
+        cmd = r"sh conf/reset_keentuned.sh {} '{}'".format(config, file)
+        self.status, self.out, _  = sysCommand(cmd)
+        self.assertEqual(self.status, 0)
+        self.assertIn("restart keentuned server successfully!", self.out)
+
     def test_param_tune_RBT_lose_job_param(self):
         cmd = 'keentune param tune -i 10'
         self.status, self.out, _ = sysCommand(cmd)
@@ -211,14 +217,11 @@ class TestParamTune(unittest.TestCase):
         deleteDependentData("param3")
 
     def test_param_tune_RBT_multi_config(self):
-        cmd = "sh conf/reset_keentuned.sh {} '{}'".format("param", "sysctl.json, nginx_conf.json")
-        self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
-        self.assertIn("restart keentuned server successfully!", self.out)
-
+        self.reset_keentuned("param", "sysctl.json, nginx_conf.json")
         cmd = 'keentune param tune -i 10 --job param3'
         path = getTaskLogPath(cmd)
         result = getTuneTaskResult(path)
         self.assertTrue(result)
         self.check_param_tune_job("param3")
         deleteDependentData("param3")
+        self.reset_keentuned("param", "sysctl.json")
