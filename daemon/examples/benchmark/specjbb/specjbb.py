@@ -6,10 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 """
-SPEC_cpu test ...
-e.g.
-runcpu --rebuild --config=cpu2017-20220610-32039.cfg --action=build --copies=32 --threads=1 --iterations=3 --size=ref --output_format=txt --noreportable 502 520 525
-runcpu --config=cpu2017-20220610-32039.cfg --action=run --copies=32 --threads=1 --iterations=1 --size=ref --output_format=txt --noreportable  502 520 525
+Specjbb test ...
 """
 
 #const
@@ -26,21 +23,21 @@ class Benchmark():
 
         Return True and score list if running benchmark successfully, otherwise return False and empty list.
         """
-        #time.sleep(30)
-        #cmd = self.command
-        #logger.info(cmd)
-        #result = subprocess.run(
-        #            cmd,
-        #            shell=True,
-        #            close_fds=True,
-        #            stderr=subprocess.PIPE,
-        #            stdout=subprocess.PIPE
-        #        )
-        #self.out = result.stdout.decode('UTF-8','strict')
-        #self.error = result.stderr.decode('UTF-8','strict')
-        with open("/root/specjbb2015_103/out.txt", 'r') as f:
-            self.out = f.read()
-        if 1:
+        cmd = self.command
+        logger.info(cmd)
+        result = subprocess.run(
+                    cmd,
+                    shell=True,
+                    close_fds=True,
+                    stderr=subprocess.PIPE,
+                    stdout=subprocess.PIPE
+                )
+        self.out = result.stdout.decode('UTF-8','strict')
+        self.error = result.stderr.decode('UTF-8','strict')
+        if result.returncode == 0:
+        #with open("/root/specjbb2015_103/out.txt", 'r') as f:
+        #    self.out = f.read()
+        #if 1:
             Out_name = re.compile(r'([/\w\.-]+)composite.out')
             if not re.search(Out_name, self.out):
                 logger.error("can not parse output: {}".format(self.out))
@@ -60,14 +57,12 @@ class Benchmark():
 
             MAX_JOPS = int(re.search(MAX_JOPS_pattern, data).group(1))
             CRITICAL_JOPS = int(re.search(CRITICAL_JOPS_pattern, data).group(1))
-            print(MAX_JOPS)
-            print(CRITICAL_JOPS)
             
-            AVG_JOPS = float(MAX_JOPS/102342) + float(CRITICAL_JOPS/52457)
+            AVG_JOPS = float(MAX_JOPS/95613) + float(CRITICAL_JOPS/59976)
 
 
             result = {
-                    "agg_jOPS": AVG_JOPS
+                    "avg-jOPS": float(AVG_JOPS)
             }
 
             result_str = ", ".join(["{} = {}".format(k,v) for k,v in result.items()])

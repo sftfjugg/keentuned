@@ -6,7 +6,8 @@
             "range":[
                 5000000,
                 600000000
-            ]
+            ],
+	    "step": 1000000
         },
       "kernel.sched_wakeup_granularity_ns":{
             "desc":"默认值:15000000",
@@ -14,7 +15,8 @@
             "range":[
                 30000,
                 30000000
-            ]
+            ],
+	    "step": 10000
         },
       "kernel.sched_latency_ns":{
             "desc":"默认值:24000000",
@@ -22,7 +24,8 @@
             "range":[
                 200000,
                 50000000
-            ]
+            ],
+	    "step": 100000
         }
     },
 
@@ -33,7 +36,8 @@
 	"range": [
 		0,
 		2000
-	]
+	],
+	"step": 10
 
       },
       "FreqInlineSize": {
@@ -42,7 +46,8 @@
 	"range": [
 		0,
 		2000
-	]
+	],
+	"step": 10
 
       },
       "InlineSmallCode": {
@@ -51,16 +56,17 @@
         "range": [
 		0,
 		8000
-	]
-      }
-    },
+	],
+	"step": 10
+      },
       "Dspecjbb.forkjoin.workers.Tier1": {
         "desc": "默认值:64",
         "dtype": "int",
         "range": [
                 64,
                 128
-        ]
+        ],
+	"step": 2
 
       },
       "Dspecjbb.forkjoin.workers.Tier2": {
@@ -69,7 +75,8 @@
         "range": [
                 4,
                 64
-        ]
+        ],
+	"step": 2
 
       },
       "Dspecjbb.forkjoin.workers.Tier3": {
@@ -78,8 +85,9 @@
         "range": [
                 16,
                 64
-        ]
+        ],
+	"step": 2
       }
-
+    }
 }
 

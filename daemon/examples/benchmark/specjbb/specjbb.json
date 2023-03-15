@@ -1,0 +1,16 @@
+{
+    "benchmark": [
+      {
+        "benchmark_cmd": "python3 {remote_script_path} {target_ip}",
+        "local_script_path": "benchmark/specjbb/specjbb.py",
+        "items": {
+          "avg-jOPS": {
+            "negative": false,
+            "weight": 100,
+            "strict": false
+          }
+        }
+      }
+    ]
+}
+
