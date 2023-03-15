@@ -22,6 +22,7 @@ class TestParamTuneRollback(unittest.TestCase):
         server_list = ["keentuned", "keentune-brain",
                        "keentune-target", "keentune-bench"]
         status = checkServerStatus(server_list)
+        print("server status is: %s" % status)
         self.assertEqual(status, 0)
         logger.info('start to run test_param_tune_rollback testcase')
 
@@ -38,19 +39,19 @@ class TestParamTuneRollback(unittest.TestCase):
 
         cmd = 'keentune param tune -i 10 --job param1'
         self.status, self.out, _  = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
         print("status is: %s" % self.status)
         print("output is: %s" % self.out)
         print("error is: %s" % _)
+        self.assertEqual(self.status, 0)
         time.sleep(2)
         cmd = 'keentune param stop'
         print("------------------------------------------------")
         self.status, self.out, _ = sysCommand(cmd)
-        self.assertEqual(self.status, 0)
-        self.assertTrue(self.out.__contains__('Abort parameter optimization job'))
         print("status is: %s" % self.status)
         print("output is: %s" % self.out)
         print("error is: %s" % _)
+        self.assertEqual(self.status, 0)
+        self.assertTrue(self.out.__contains__('Abort parameter optimization job'))
         time.sleep(5)
         res = checkBackupData()
         self.assertEqual(res, 0)
@@ -62,10 +63,10 @@ class TestParamTuneRollback(unittest.TestCase):
         self.assertEqual(res, 1)
 
         self.status, self.out, _ = sysCommand('keentune param rollback')
-        self.assertEqual(self.status, 0)
-        self.assertTrue(self.out.__contains__('param rollback successfully'))
         print("status is: %s" % self.status)
         print("output is: %s" % self.out)
         print("error is: %s" % _)
+        self.assertEqual(self.status, 0)
+        self.assertTrue(self.out.__contains__('param rollback successfully'))
         res = checkBackupData()
         self.assertEqual(res, 0)

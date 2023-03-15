@@ -47,6 +47,7 @@ def getServerStatus(server):
     url = "http://{}:{}/{}".format(data_dict[server][0], data_dict[server][1], event)
     res = requests.get(url, proxies={"http": None,"https": None})
     if res.status_code != 200:
+        print("Please check {} server is running...".format(server))
         logger.error("Please check {} server is running...".format(server))
         result = 1
     else:
