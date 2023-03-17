@@ -105,6 +105,7 @@ func doOneBench(s *sync.WaitGroup, req request, scores []map[string][]float32, r
 	config.IsInnerBenchRequests[req.ipIndex] = true
 	defer func() {
 		s.Done()
+		terminate(req.host)
 		config.IsInnerBenchRequests[req.ipIndex] = false
 		if errMsg != nil {
 			sc.SafeStop()

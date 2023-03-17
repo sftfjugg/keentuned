@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	com "keentune/daemon/api/common"
 	"keentune/daemon/common/config"
 	"keentune/daemon/common/file"
 	"keentune/daemon/common/log"
@@ -10,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 )
 
 type setVars struct {
@@ -59,6 +61,13 @@ func SetDefault() () {
 
 func setConfigure(setter setVars, domains *sync.Map) {
 	defer setter.wg.Done()
+
+	if !tryConnect(setter.ip, setter.target.Port) {
+		msg := "default set failed after trying 3 times for accessing to keentune-target"
+		sug := "suggest: please restart keentuned after ensuring that keentune-target is started"
+		log.Errorf("", "'%v' %v\n\t%v", setter.ip, msg, sug)
+		return
+	}
 
 	var tuner = &m.Tuner{}
 
@@ -181,4 +190,26 @@ func getActiveConf(groupNo int, ip string) string {
 	return fileName
 }
 
+func tryConnect(ip, port string) bool {
+	var (
+		result   = false
+		tryTimes = 3
+	)
+
+	for i := 0; i < tryTimes; i++ {
+		err := com.GetStatus(ip, port)
+		if err != nil {
+			if i < 2 {
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			break
+		}
+
+		result = true
+		break
+	}
+
+	return result
+}
 

@@ -254,7 +254,7 @@ func (logger *Logger) getFormater(file, funcName string, line int, level string)
 	switch level {
 	case "ERROR", "WARNING":
 		return &consoleLogFormater{
-			LogFormat: "[%s]  %s ... [%s, %d]\n",
+			LogFormat: "[%s] %s ... [%s, %d]\n",
 			file:      file,
 			funcName:  funcName,
 			line:      line,
