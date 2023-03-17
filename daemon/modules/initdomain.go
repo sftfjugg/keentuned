@@ -10,11 +10,22 @@ import (
 )
 
 const (
-	errFlag  = "ERROR"
-	warnFlag = "WARNING"
+	initDomainFailed = "keentune-target domain init failed."
 )
 
+// InitResult init domain result
+type InitResult struct {
+	Warn string
+	Err  string
+}
+
 func initDomain(host string, req interface{}, domains *sync.Map) (string, error) {
+	if len(host) == 0 {
+		return "", fmt.Errorf("empty host")
+	}
+
+	ip := strings.Split(host, ":")[0]
+
 	url := fmt.Sprintf("%v/init", host)
 	resp, err := http.RemoteCall("POST", url, req)
 	if err != nil {
@@ -42,7 +53,7 @@ func initDomain(host string, req interface{}, domains *sync.Map) (string, error)
 
 		domains.Store(domain, true)
 		failureNum++
-		failedInfo += fmt.Sprintf("'%v' init failed, %v%v", domain, val.Msg, multiSeparator)
+		failedInfo += fmt.Sprintf("%v '%v' init failed, %v%v", ip, domain, val.Msg, multiSeparator)
 	}
 
 	failedInfo = strings.TrimSuffix(failedInfo, multiSeparator)
@@ -54,11 +65,13 @@ func initDomain(host string, req interface{}, domains *sync.Map) (string, error)
 	return failedInfo, nil
 }
 
-func (gp *Group) initDomain() ([]string, error) {
+func (gp *Group) initDomain() ([]string, []string, error) {
 	var (
 		snDomains   = &sync.Map{}
 		wg          = sync.WaitGroup{}
-		initResults = make([]string, len(config.KeenTune.IPMap))
+		initResults = make([]InitResult, len(config.KeenTune.IPMap))
+		warnResults = make([]string, len(config.KeenTune.IPMap))
+		errMsg      string
 	)
 
 	for _, ip := range gp.IPs {
@@ -82,30 +95,30 @@ func (gp *Group) initDomain() ([]string, error) {
 	var err error
 
 	for idx := range initResults {
-		if strings.Contains(initResults[idx], errFlag) && err == nil {
-			initResults[idx] = strings.TrimPrefix(initResults[idx], errFlag)
-			err = fmt.Errorf("init failure occurs")
+		warnResults[idx] = initResults[idx].Warn
+		if len(initResults[idx].Err) > 0 {
+			errMsg += fmt.Sprintln(initResults[idx].Err)
 		}
-
-		initResults[idx] = strings.TrimPrefix(initResults[idx], warnFlag)
 	}
 
-	gp.updateDomains(snDomains)
+	if errMsg != "" {
+		err = fmt.Errorf(errMsg)
+	}
 
-	return initResults, err
+	unAvlDomains := gp.updateDomains(snDomains)
+
+	return unAvlDomains, warnResults, err
 }
 
-func doInitDomain(results []string, req request, w *sync.WaitGroup, domains *sync.Map) {
+func doInitDomain(results []InitResult, req request, w *sync.WaitGroup, domains *sync.Map) {
 	defer w.Done()
 	result, err := initDomain(req.host, req.body, domains)
 	if err != nil {
-		results[req.ipIndex] = fmt.Sprintf("%v %v %v", errFlag, req.ip, result)
-		return
+		results[req.ipIndex].Err = fmt.Sprintf("%v %v", req.ip, err)
 	}
 
 	if result != "" {
-		results[req.ipIndex] = fmt.Sprintf("%v %v %v", warnFlag, req.ip, result)
+		results[req.ipIndex].Warn = fmt.Sprintf("%v", result)
 	}
 }
-
 

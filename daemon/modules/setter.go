@@ -163,43 +163,15 @@ func UpdateActiveFile(fileName string, info []byte) error {
 
 // SetDefault set default configuration
 func (tuner *Tuner) SetDefault() (string, string, error) {
-	var recommend string
-	ip := tuner.Group[0].IPs[0]
-	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0], ip)
-	colorWarn := utils.ColorString("yellow", "[Warning]")
-	if abn.Recommend != "" {
-		recs := strings.Split(abn.Recommend, multiSeparator)
-		for _, rec := range recs {
-			if strings.TrimSpace(rec) != "" {
-				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, rec)
-			}
-		}
-	}
-
-	if abn.Warning != "" {
-		warns := strings.Split(abn.Warning, multiSeparator)
-		for _, warn := range warns {
-			if strings.TrimSpace(warn) != "" {
-				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, warn)
-			}
-		}
-	}
-
+	// 1. init domain
+	recommend, err := tuner.initDefaultDomain()
 	if err != nil {
 		return recommend, "", err
 	}
 
-	port := tuner.Group[0].Port
-	host := fmt.Sprintf("%v:%v", ip, port)
-	var snDomains = &sync.Map{}
-	tuner.Group[0].initDomains, err = InitDomain(host, param, snDomains, &abn)
-	if err != nil {
-		return recommend, "", err
-	}
-
-	tuner.updateGroup(param, snDomains)
-
+	// 2. prepare set
 	err = tuner.prepareBeforeSet()
+	colorWarn := utils.ColorString("yellow", "[Warning]")
 	if tuner.backupWarning != "" {
 		for _, backupWarning := range strings.Split(tuner.backupWarning, multiSeparator) {
 			if strings.TrimSpace(backupWarning) != "" {
@@ -212,8 +184,15 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 		return recommend, "", err
 	}
 
-	var result string
-	ipIndex := config.KeenTune.IPMap[ip] * 2
+	var (
+		result  string
+		ip      = tuner.Group[0].IPs[0]
+		port    = tuner.Group[0].Port
+		host    = fmt.Sprintf("%v:%v", ip, port)
+		ipIndex = config.KeenTune.IPMap[ip] * 2
+	)
+
+	// 3. configure
 	for _, reqParam := range tuner.Group[0].Params {
 		if reqParam == nil {
 			continue
@@ -228,12 +207,63 @@ func (tuner *Tuner) SetDefault() (string, string, error) {
 		result += ret
 	}
 
+	// 4. update active file
 	activeFile := config.GetProfileWorkPath("active.conf")
 	var fileSet = fmt.Sprintln("name,group_info")
 	name := file.GetPlainName(tuner.Setter.ConfFile[0])
 	fileSet += fmt.Sprintf("%s,%s\n", name, ip)
 	UpdateActiveFile(activeFile, []byte(fileSet))
 	return recommend, result, nil
+}
+
+func (tuner *Tuner) initDefaultDomain() (string, error) {
+	var recommend string
+	ip := tuner.Group[0].IPs[0]
+	abn, param, err := ConvertConfFileToJson(tuner.ConfFile[0], ip)
+	colorWarn := utils.ColorString("yellow", "[Warning]")
+	if abn.Recommend != "" {
+		recs := strings.Split(abn.Recommend, multiSeparator)
+		for _, rec := range recs {
+			if strings.TrimSpace(rec) != "" {
+				recommend += fmt.Sprintf("%v\n", rec)
+			}
+		}
+	}
+
+	if abn.Warning != "" {
+		warns := strings.Split(abn.Warning, multiSeparator)
+		for _, warn := range warns {
+			if strings.TrimSpace(warn) != "" {
+				recommend += fmt.Sprintf("\t%v %v\n", colorWarn, warn)
+			}
+		}
+	}
+
+	if err != nil {
+		return recommend, err
+	}
+
+	port := tuner.Group[0].Port
+	host := fmt.Sprintf("%v:%v", ip, port)
+	var snDomains = &sync.Map{}
+	tuner.Group[0].initDomains, err = InitDomain(host, param, snDomains, &abn)
+	unAvlDomains := tuner.updateGroup(param, snDomains)
+
+	if len(tuner.Group[0].initDomains) == 0 {
+		err = fmt.Errorf("%v\n\tUavailable domains: %v\n",
+			initDomainFailed, strings.Join(unAvlDomains, ", "))
+		return recommend, err
+	}
+
+	if len(unAvlDomains) > 0 {
+		avalDomainsInfo := strings.Join(tuner.Group[0].initDomains, ", ")
+		unAvalDomainsInfo := strings.Join(unAvlDomains, ", ")
+		warn := fmt.Sprintf("%v\n\tAvailable domains: %v. Uavailable domains: %v",
+			initDomainFailed, unAvalDomainsInfo, avalDomainsInfo)
+		recommend += fmt.Sprintf("%v %v\n", colorWarn, warn)
+	}
+
+	return recommend, nil
 }
 
 // InitDomain ...
@@ -260,12 +290,12 @@ func InitDomain(host string, param map[string]map[string]interface{}, snDomains 
 	return domains, nil
 }
 
-func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}, snDomains *sync.Map) {
+func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}, snDomains *sync.Map) []string {
 	gp := new(Group)
 	gp.ReadOnly = false
 	gp.initDomains = tuner.Group[0].initDomains
 	gp.GroupNo = tuner.Group[0].GroupNo
-	gp.updateDomains(snDomains)
+	unAvlDomains := gp.updateDomains(snDomains)
 
 	for domain := range param {
 		_, find := gp.deleteDomain[domain]
@@ -283,6 +313,6 @@ func (tuner *Tuner) updateGroup(param map[string]map[string]interface{}, snDomai
 	tuner.Group[0] = *gp
 
 	tuner.loadRBDomains()
+	return unAvlDomains
 }
-
 

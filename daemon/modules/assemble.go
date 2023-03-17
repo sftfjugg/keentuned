@@ -50,15 +50,15 @@ func (tuner *Tuner) initParams() error {
 		target.GroupNo = group.GroupNo
 		target.initDomains = group.Domains
 
-		initDomainRes, err := target.initDomain()
-		if err != nil {
-			return fmt.Errorf("group %v init domain failed, %v", target.GroupName, err)
-		}
-
+		_, initDomainRes, err := target.initDomain()
 		for _, result := range initDomainRes {
 			if result != "" {
 				log.Warnln(tuner.logName, result)
 			}
+		}
+
+		if err != nil {
+			return fmt.Errorf("group %v init domain failed, %v", target.GroupName, err)
 		}
 
 		err = getInitParam(index+1, group.ParamMap, &tuner.BrainParam, target)
@@ -429,15 +429,21 @@ func (gp *Group) getConfDomain(resultMap map[string]map[string]interface{}, abno
 
 	gp.initDomains = domains
 
-	initDomainRes, err := gp.initDomain()
-	if err != nil {
-		return err
+	unavailableDomain, _, err := gp.initDomain()
+	if len(gp.initDomains) == 0 {
+		return fmt.Errorf("%v\n\t\t\tUavailable domains: %v\n",
+			initDomainFailed, strings.Join(unavailableDomain, ", "))
 	}
 
-	for _, result := range initDomainRes {
-		if result != "" {
-			abnormal.Warning += fmt.Sprintf("%v%v", result, multiSeparator)
-		}
+	if len(unavailableDomain) > 0 {
+		avalDomainsInfo := strings.Join(gp.initDomains, ", ")
+		unAvalDomainsInfo := strings.Join(unavailableDomain, ", ")
+		abnormal.Warning += fmt.Sprintf("%v\n\t\t\tAvailable domains: %v. Uavailable domains: %v%v",
+			initDomainFailed, unAvalDomainsInfo, avalDomainsInfo, multiSeparator)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	for delDomain := range gp.deleteDomain {
@@ -537,7 +543,7 @@ func (gp *Group) tidyUnavailableParams(kv map[string]string, domain string, warn
 	return oneDomainWarning
 }
 
-func (gp *Group) updateDomains(domains *sync.Map) {
+func (gp *Group) updateDomains(domains *sync.Map) []string {
 	gp.deleteDomain = make(map[string]bool)
 	domains.Range(func(domain, vi interface{}) bool {
 		value, ok := domain.(string)
@@ -549,25 +555,24 @@ func (gp *Group) updateDomains(domains *sync.Map) {
 	})
 
 	if len(gp.deleteDomain) == 0 {
-		return
+		return nil
 	}
 
-	var updatedDomains []string
+	var updatedDomains, unAvlDomains []string
 	for _, domain := range gp.initDomains {
-		var notIn = true
-		for delDomain := range gp.deleteDomain {
-			if delDomain == domain {
-				notIn = false
-				break
-			}
+		if gp.deleteDomain[domain] {
+			unAvlDomains = append(unAvlDomains, domain)
+			continue
 		}
 
-		if notIn {
-			updatedDomains = append(updatedDomains, domain)
-		}
+		updatedDomains = append(updatedDomains, domain)
 	}
 
 	gp.initDomains = updatedDomains
-}
 
+	sort.Strings(gp.initDomains)
+	sort.Strings(unAvlDomains)
+
+	return unAvlDomains
+}
 
