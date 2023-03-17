@@ -126,8 +126,8 @@ func IsBenchOffline(clientName *string) bool {
 
 	for groupID, benchGroup := range config.KeenTune.BenchGroup {
 		for _, benchIp := range benchGroup.SrcIPs {
-			benchAvl, _, _ := GetAVLAgentAddr(benchIp, benchGroup.SrcPort, benchGroup.DestIP)
-			if !benchAvl {
+			err := GetStatus(benchIp, benchGroup.SrcPort)
+			if err != nil {
 				*clientName += fmt.Sprintf("bench-group[%v] %v, ", groupID+1, benchIp)
 				offline = true
 			}
